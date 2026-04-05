@@ -1,97 +1,87 @@
-# Đặc tả Chiến Lược Mồi Dữ Liệu GEAS (Data Bootstrap Strategy)
-## Đường Ống Huấn Luyện 3 Pha DAgger — Khắc phục G4: "Bài toán Con gà - Quả trứng dữ liệu"
+# Đặc tả Chiến Lược Dữ Liệu (GEAS Data Bootstrapping Strategy)
+## Quy trình Huấn luyện 3 Giai đoạn DAgger — Khắc phục G4: "Bài toán thiếu Khởi tạo Dữ liệu"
 
 > **Version**: 1.0 | **Status**: Giai đoạn Đặc tả | **Cập nhật lần cuối**: 2026-04-03
 
 ---
 
-## 1. Bài Toán Con Gà Và Quả Trứng
+## 1. Bài Toán Khởi Phân Dữ Liệu
+
+Quá trình khởi tạo Mô hình GEAS đối mặt với vấn đề "Con gà - Quả trứng":
+- Yêu cầu cấu trúc: Để hệ thống có thể tự học (Training), cần có số lượng lớn dữ liệu cấu trúc (Data Episodes) ghi nhận các thao tác chuẩn của con người.
+- Thách thức: Phải có con người thực hiện các thao tác thủ công, được ghi nhận đúng chuẩn của hệ thống Episodes. Nếu không có dữ liệu khởi tạo, Hệ thống AI sẽ không có định hướng cơ bản. 
+
+**Giải pháp đề xuất**: Sử dụng phương pháp **DAgger (Dataset Aggregation)** kết hợp vòng lặp luân phiên 3 giai đoạn (Con người - Học Nửa Giám Sát - Tự Tương Tác).
+
+## 2. Giao thức DAgger 3 Giai Đoạn (Dataset Aggregation)
+
+### Giai đoạn 1: Khởi Tạo Tệp Dữ Liệu Chuyên Gia (Tháng 1-2)
+
+- Các Kỹ sư Phần Mềm sẽ trực tiếp thao tác và giải quyết bài toán mã nguồn, sử dụng nền tảng COPL.
+- Mọi nút bấm, lệnh gọi (Action), và phản hồi hệ thống (Outcome) đều được ghi nhận (Logging) thành các Episode.
+
+**Phạm vi Phân Lớp Task Khởi tạo (20 Tasks Core):**
+- **Cấp độ Cơ bản (Level 1):** Khởi tạo Module đơn giản, khai báo biến (Struct), và viết các hàm cơ bản (Functions).
+- **Cấp độ Mở rộng (Level 2):** Điều hướng thiết kế Architecture, sửa lỗi Type Casting, lập cấu hình Contract Rules.
+- **Cấp độ Phức Tạp (Level 3):** Xây dựng Cấu trúc Layered, kiến tạo State Machine, đo đạc thông số Trace và Test cases.
+
+**Phân Bổ Kế Hoạch Đo Lường:**
+- 1 Task tiêu thụ trung bình 30-100 thao tác (Actions) = Tương đương 30-100 Episodes.
+- Tổng Dữ liệu: 20 Tasks × 60 Episodes = Khoảng ~1,200 Tập Lệnh Khởi đầu (Golden Dataset).
+
+### Giai đoạn 2: Tương Tác & Hiệu Chỉnh Có Giám Sát (Tháng 3-4)
+
+1. Cập nhật Model Base với tập 1,200 Episodes để học các quy luật nền tảng.
+2. Khởi chạy Mô phỏng (Simulated Execution) để GEAS xử lý các bài toán độc lập.
+3. Nếu Agent rớt luồng hoặc đưa lệnh sai, các chuyên gia sẽ ghi đè và Hiệu Chỉnh Hành Động (Action Correction).
+4. Các bản vá của Chuyên Gia sẽ được đóng gói lại thành các Lesson/Episode mới và nạp ngược lại vào Cơ sở Dữ liệu.
+5. Vòng lặp tái cấu trúc Model (Retraining process) sẽ được thực hiện thường xuyên.
+
+### Giai đoạn 3: Tự Thẩm Định (Self-Play) (Tháng 5+)
+
+- Mô hình hoạt động Độc lập (Autonomous Loop).
+- Khả năng thẩm định tính đúng/sai hoàn toàn chuyển sang kết quả xác thực từ COPL Compiler:
+  - Phản hồi **Thành công (Build Success/Test Passed)**: System tự động gắn cờ Tích cực (Positive Reinforcement).
+  - Phản hồi **Lỗi (Compile Error/Fail)**: System tự động kích hoạt Module Diagnostic để phân tích Root-Cause, vá sửa (Self-Correction), và đóng gói bài học (Negative Reinforcement Lesson).
+
+## 3. Khung Đào Tạo Và Tăng Tiến (Curriculum Matrix)
 
 ```
-Muốn tự động vắt óc huấn luyện Đặc Vụ GEAS → Phải có sẵn núi dữ liệu (các ván cày của Cố vấn Chuyên gia)
-Mà MUỐN CÓ đống ván cày Chuyên gia → Thì lại bắt buộc phải TÌM RA NGƯỜI chịu trận múa code
-Ai chưa mọc cánh → Thế nên chưa nôn ra được Ván Code
-Sạch bách Ván Code → Rỗng ruột khỏi luyện AI
+Level 1 (Dành cho Giai đoạn Mồi - 5 Tasks Cơ sở)
+  T-001: Khởi tạo Struct 5 thông số.
+  T-002: Lập trình Logic cơ bản qua các dạng hàm Logic tuyến tính.
 
-→ KHÚC MẮC TUYỆT PHONG: CHẾT THEO VÒNG LUẨN QUẨN BOOTSTRAPPING
+Level 2 (Dành cho Giai đoạn Rèn - 8 Tasks Nâng cao)
+  T-006: Khởi chạy Controller / Driver Component.
+  T-007: Khắc phục lỗi tương thích kiến trúc Type Mismatches Error.
+
+Level 3 (Dành cho Khảo sát Self-play - 7 Tasks Hệ thống)
+  T-014: Thiết kế Network Architecture (Ví dụ: CAN Stack với MCAL + BSW + Service layers).
+  T-015: Khởi lập Logic Điều khiển trung tâm (Vehicle Control Unit / Safety Control Machine).
+  T-016: Refactor lại Cấu trúc mã sang phân cấp Layers độc lập.
 ```
 
-## 2. Diệu Kế Nắn Dây: DAgger (Dataset Aggregation) Ép 3 Giai Đoạn
-
-### Pha 1: Trí Tuệ Con Người Mồi Mẫu (Tháng 1-2)
-
-```
-Siêu sao Kỹ sư Code Trực tiếp Đóng Phim Nhả Tay bằng ngôn ngữ nền COPL.
-Từng Nút Phím, Từng Lựa Chọn Action sẽ bị camera Rình Ghi Nén Lại Thành Các Khối Episode Tuyệt Đỉnh.
-
-Chia Ngạch: Chọn Lọc Trích Bắn vào đúng 20 Cục Task xịn:
-  - Khúc Nhẹ Ký: Mở Trắng 1 module lẻ, Dệt thử mã struct, Khởi nắn 1 mảnh func
-  - Khúc Cứng Tay: Vát khối dự án đẻ chùm module, Mổ Chữa lệch Kiểu type, Kẹp Nọc Hợp Đồng Contract Contract
-  - Khúc Nhằn Cực Khét: Xây Lắp Cấu Trúc Khủng layered, Lên Rạp Hệ Chạy Máy Trạng thái State Machine, Siết Đai Vạch Trace.
-
-Quy Chuẩn Đo Đếm:
-  Mỗi 1 Task quất cần bóp ~30-100 vòng nhịp Action = Vắt ra cỡ 30-100 episodes
-  Xé Rào Tổng Vụ: Chơi Mướt Trọn 20 tasks × băm nát nhặt ~60 episodes = Thả Vô Chậu Khoảng ~1,200 episodes Đỏ Loét.
-```
-
-### Pha 2: Chấp Cánh AI Kẹp Lời Chuyên Gia Chỉnh Đường (Tháng 3-4)
-
-```
-1. Lấy rổ 1,200 hạt Mầm Episodes Pha 1 rắc Mồi Não múa Training lót nền Tinh Khôi.
-2. Nới Xích Cho Đặc vụ cắn thử Task, Nằm đó run Tự Giác Nhả Lệnh
-3. Đụng Trạm Thằng AI Cãi Bướng Đâm Lạc Nhịp Cù Cù Lộn Bước Quyết Định Trượt Quỹ Đạo → Dùng Búa Tiên Nhân Gõ Đầu Chỉnh Nắn ÉP Nhận Tay Sửa action lại (human corrects)
-4. Cái Cú Nẹp Lỗi Sửa Kia Sẽ Quết Tròn Ép Mãnh Mới Vô Data Điểm Béo Sụn Mới
-5. Vòng Xoáy Lặp Đổ Bồi Bếp Xới Model lại Để Quện Vào Não (Retrain).
-```
-
-### Pha 3: Cuộc Tỉ Thí Tự Do Solo (Self-Play Tháng 5+)
-
-```
-Lúc này Đặc Vụ Bung lụa Cất Cánh, Miễn Trực Ca Quản Giáo.
-Chiếc Thước Kẻ Đo Tính Chính Danh Chốt Hạ Giờ Nằm Trong Tay Bộ Trình Biên Cấu COPL Compiler:
-  - Máy Báo Build lọt khe Thơm Phức → Thẻ Xanh Tín Niệm Rót Bài Đỉnh
-  - Máy Báo Rớt Xệ Trượt Sập → Điểm Méo Tiêu Cực → Gọi Nhảy Cây Phân Chẩn Lỗi diagnosis → Nắn Sửa Kéo correction.
-```
-
-## 3. Khung Nấc Dùi Luyện Tập Curriculum
-
-```
-Vòng Gửi Xe Lớp 1 (Siêu Dễ): Gồm 5 tasks mẫu
-  T-001: Ép Cấu Mảng struct vát 5 núm fields
-  ... (Các task đơn lẻ ráp mã)
-
-Vòng Đấu Khu Cấp 2 (Ngọt Vừa): Gồm 8 Khúc xương
-  T-006: Tháp Lòng Nhạc Driver CAN cắm rễ 3 mạch function function
-  T-007: Vục Sửa lỗi Lệch Nhịp Cấu Hình type mismatches bẻ gãy dự án
-  ...
-
-Vòng Lên Tháp Tử Địa 3 (Mạng Lưới Chằng Chéo): Gồm 7 Quả Lớn
-  T-014: Gầy Trọn Ổ Già CAN stack (Chồng Đủ các khe MCAL + BSW + Tầng dịch vụ)
-  T-015: Trấn Giữ Lõi VCU Phân Mã Mạch Cỗ Máy state machine Có Viền bọng lướt safety
-  T-016: Đập Lỗ Ban refactor Cấu Vịn Phẳng Sang Tầng Layer Chéo...
-```
-
-## 4. Rào Chắn Lọc Nước Đục Kiểm Đảm Data Đục/Sạch (Data Quality Gates)
+## 4. Quản Trị Cổng Chặn Filter Dữ Liệu (Data Quality Gateways)
 
 ```python
 class DataQualityChecker:
     def validate_episode(self, episode: Episode) -> bool:
-        # Cửa Điểm 1: Màng Trạng thái State Không Bị lũng lỗ thiếu hụt
-        # Cửa Điểm 2: Nước Cờ Lựa Action phải Móng Mặt Đều Trong Gọn Vành Vực 45 Action
-        # Cửa Điểm 3: Thẻ Outcome Phải Được Đoán Phán Đóng Nẹp Chắc Nịch
-        # Cửa Điểm 4: Gáy Rớt Fail Thì Khối Rễ Diagnosis Đi Kèm Phải Chắc Không Trống Đỡ
+        # Gateway 1: Kiểm tra State Context có đủ Payload
+        # Gateway 2: Action Logging hợp lệ (Nằm trong 45 Allowed Actions)
+        # Gateway 3: Chỉ định Điểm Outcome phải liên kết thành công với Trạng thái Compile
+        # Gateway 4: Root-cause Diagnosis bắt buộc đi kèm nếu trạng thái là Bại (Failed)
         return True
     
     def validate_dataset(self, dataset: list[Episode]) -> DatasetReport:
-        # Check Cân Cân Tỷ Đóng Lực (No action >30% or <1%)
-        # Cân Nhíp Rớt/Tồn Không Quá Đà Ngọt, Rơi Chệch Luồng 60/40 thì Bóp
+        # Cân bằng Dữ liệu (Class Balance Threshold):
+        # - Đảm bảo không Action nào chiếm ưu thế tuyệt đối (>30%) hay bị bỏ sót (<1%).
+        # - Hệ số Phân Cực Outcomes: Duy trì tỉ lệ Success/Failure trong ngưỡng dung sai 60/40.
         pass
 ```
 
-## 5. Tổ Cất Nén Kho Episodes
+## 5. Tổ Chức Lớp Lưu Trữ Dữ Liệu (Storage Schema)
 
 ```sql
--- Dàn Lên Khuôn SQLite nén mảng Màng tập Training Episodes
 CREATE TABLE episodes (
     id TEXT PRIMARY KEY,
     project_id TEXT NOT NULL,
@@ -99,12 +89,12 @@ CREATE TABLE episodes (
     branch TEXT DEFAULT 'main',
     timestamp REAL NOT NULL,
     
-    -- Gói Kín JSON
+    -- Lưu trữ khối Data JSON
     state_json TEXT NOT NULL,
     action_json TEXT NOT NULL,
     outcome_json TEXT NOT NULL,
     
-    -- Chỉ vạch Truy Ngợc (Fast query)
+    -- Truy vấn Index Cao Cấp
     action_type TEXT NOT NULL,
     outcome_class TEXT NOT NULL,
     success BOOLEAN NOT NULL,

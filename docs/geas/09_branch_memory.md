@@ -1,113 +1,112 @@
-# Đặc tả Ký ức Lọc Từ Phân Nhánh GEAS (Branch-Aware Memory)
-## Củng Cố Ranh Giới Ký Ức Theo Nhánh — Khắc phục Scale#3: "Ký ức bị mù hướng nhánh, không biết đang nằm ở nhánh nào"
+# Đặc tả Ký ức Lưu Trữ Theo Phân Nhánh (GEAS Branch-Aware Memory)
+## Tối Ưu Quản Lý Ngưỡng Dữ Liệu Theo Môi Trường Git — Khắc phục G12: "Lỗ hổng dữ liệu khi chuyển nhánh"
 
 > **Version**: 1.0 | **Status**: Giai đoạn Đặc tả | **Cập nhật lần cuối**: 2026-04-03
 
 ---
 
-## 1. Nan Giải Điểm Mù (Problem)
+## 1. Bài Toán Xung Đột Ngữ Cảnh Xuyên Nhánh (Context Collision Problem)
 
-```
-Một khi Bể Trí Nhớ Bị Mù Khơi Tịt Hướng Nhánh:
+Khi Agent thực hiện đa nhiệm vụ trên các phân nhánh khác nhau (Git Branches), kiến thức được học từ nhánh này có thể không phù hợp hoặc gây lỗi cho nhánh khác.
 
-  Đặc Vụ Cắm Chốt Ở nhánh "bugfix/safety" vọc code
-    → Học Rút Ruột Kéo ra: "Bấm ngàm timeout mức chui lưới an toàn safety timeout phải là 50ms"
-    
-  Rồi Tên Đặc Vụ Quất Thẳng Bóng Nhảy Qua Nhóm nhánh "feature/hev"
-    → Lục Moi Óc Tòi Ra Quên Bài cũ: "Phán là safety timeout chỉ 50ms thôi"
-    → ĐỜI OÁI OĂM: Nhánh feature/hev này NÓ VẪN DÙNG CÁI MỐC CŨ 100ms! (Vì chưa bị vá)
-    → Bể Óc Nổ Tung vì Đặc Vụ Loạn Nhịp Chặt Bước Confused Sấp Mặt
-```
+**Ví dụ thực tế:**
+- Tại nhánh `bugfix/safety`: Agent học được quy tắc "Ngưỡng Cảnh báo An toàn Safety Timeout System thiết lập bằng 50ms".
+- Sau khi chuyển sang nhánh `feature/hev` (nhánh này vốn dĩ chốt thông số Timeout là 100ms): Nếu Agent bế kiến thức "50ms" đè vào, lập tức xung đột và sập lỗi toàn cục.
 
-## 2. Đường Tháo Kẹt: Đóng Thẻ Ký Ức Đi Liền Nhánh (Branch-Tagged Memory)
+**Hậu quả**: Lỗi "Blind Memory" khiến khả năng ra quyết định của Agent bị sai lệch hoàn toàn khỏi Context đặc thù của Branch.
 
-### 2.1 Banh Trướng Khuông Rương Đựng Schema
+## 2. Giải Pháp Gắn Nhãn Ký Ức (Branch-Tagged Memory)
+
+### 2.1 Mở rộng Khối Kiến Trúc Dữ Liệu (Schema Expansion)
+
+Mọi Lesson/Episode được lưu lại đều phải đính kèm Context của Branch cụ thể.
 
 ```python
 @dataclass
 class Episode:
-    # ... mớ ruột cũa phần Episode ...
+    # Các trường gốc của Episode
     
-    # Bọc Cấu Rào Xung Quanh Branch Cành Nhánh (Branch context)
-    branch: str                     # Ghìm Nhãn "main", "feature/hev", "bugfix/safety"
-    commit_hash: str                # Chốt Sổ Cọc Báo Điểm Tọa Độ commit lúc ấy
-    merge_status: str               # Tình trạng Hóa Đỉnh: "Còn Ngọ Nguậy active"|"Quy Về Cội Nhập Lòng Mẹ merged_to_main"|"Bụi Hóa Bỏ rơi abandoned"
+    # Bổ sung Meta parameters truy vết môi trường Branch
+    branch: str                     # Tên Git Branch (e.g., "main", "bugfix/core")
+    commit_hash: str                # SHA Commit Code Hash định tuyến mốc thời gian lưu
+    merge_status: str               # Trạng thái hiện tại: "active", "merged_to_main", "abandoned"
 ```
 
-### 2.2 Sóng Quét Ký Ức Ngửi Rành Lưới Nhánh Mọc
+### 2.2 Thuật Toán Truy Vấn Ưu Tiên Nhánh (Priority-Weighted Retrieval)
 
 ```python
 class BranchAwareRetriever:
     def retrieve(self, query: MemoryQuery, current_branch: str, top_k: int = 5) -> list:
-        # Nhóm Chóp Trấn Đỉnh Rễ Mức 1: Bới Lọc Tranh Cúp Từ Tại Đúng Nhánh Đang Quẫy (Niềm Tin Dồi Dào Sắt Đá Nhất)
+        # Cấp độ 1 (Tier 1): Chọn Lọc Dữ liệu sinh ra từ chính Nhánh đang đứng (Ưu tiên Cao Nhất)
         tier1 = self.db.query("""
             SELECT * FROM lessons WHERE branch = ? AND status = 'active'
             ORDER BY relevance_score DESC LIMIT ?
         """, [current_branch, top_k])
         
-        # Nhóm Bạc Mức 2: Kéo Sợi Tơ Vói Sang Rễ Tổng Mẹ 'main' (Kiểm Chứng Tốt Dày Dạn)
+        # Cấp độ 2 (Tier 2): Chọn Dữ liệu sinh ra từ nhánh chung "Main/Master" (Kiến thức Hệ thống chuẩn)
         tier2 = self.db.query("""
             SELECT * FROM lessons WHERE branch = 'main' AND status = 'active'
             ORDER BY relevance_score DESC LIMIT ?
         """, [top_k])
         
-        # Nhóm Rẻ Rúng Mức 3: Ngó Ló Sang Bài Khôn Của Kẻ Hàng Xóm Nhánh Cửa Ngang Kha Khác (Niềm tin Tịt - Gắn Cờ Cảnh Báo Có Khả Năng Rủi Ro Chệch Lối)
+        # Cấp độ 3 (Tier 3): Chọn các Cửa Nhánh Khác Ngang Hàng (Có cảnh báo rủi ro Context hẹp)
         tier3 = self.db.query("""
-            ... WHERE branch != ? AND branch != 'main' ...
-        """)
+            SELECT * FROM lessons WHERE branch != ? AND branch != 'main' AND status = 'active'
+        """, [current_branch])
         
-        # Xáo Bài Cuộn Nặng Nhẹ Lửa Ưu Tiên (priority weighting)
+        # Sắp xếp và Gán Trọng Số Ưu Tiên (Priority Weighting)
         results = []
         for l in tier1: results.append(ScoredLesson(l, priority=1.0))
         for l in tier2: results.append(ScoredLesson(l, priority=0.8))
-        for l in tier3: results.append(ScoredLesson(l, priority=0.3, flag="other_branch"))
+        for l in tier3: results.append(ScoredLesson(l, priority=0.3, flag="other_branch_warning"))
         
-        # Cạo Mép Gọt Cắt Làm Trơn Khử Rác trùng Deduplicate 
-        # (rút gọn phần mã sort và trả về)
-        return results[:top_k]
+        return self._deduplicate_and_sort(results)[:top_k]
 ```
 
-### 2.3 Phá Hồn Luân Hồi Nháy Sinh Nhánh Sống Branch Lifecycle
+### 2.3 Quản Lý Vòng Đời Theo Diễn Biến Nhánh Git (Branch Lifecycle Synchronization)
+
+Hệ thống Agent Lắng nghe các File Changes Monitor qua Git Checkout:
 
 ```python
 class BranchMemoryManager:
     def on_branch_create(self, branch_name: str, base_branch: str):
-        """Bào Ngóc Nhú Lên 1 cành nhánh mới keng: Lôi Nhận Cáo Gia Sản Từ Nhánh Bố mẹ gốc."""
-        # INSERT INTO branch_context ...
+        """Khi Nhánh mới khởi tạo, Agent ghi nhận Base Pointer thừa kế kiến thức gốc."""
+        pass
     
     def on_branch_merge(self, source_branch: str, target_branch: str):
-        """Quả Đích Sập Nối Chốt Sổ Cưới Merge thành công: Nhấc Quan Phẩm Bê Tráp Bài Lên Thẳng Nhánh Cưới."""
-        # Khi Lesson Mảng Nhúc Nhích Xác Minh Qua Lò Cưới → Nhấc Cúp Vọt Đẩy target
-        # lesson.confidence *= 1.1  # Nảy Điểm Vút Lực Tự Phục
+        """Khi Pull Request thành công (Merged): Chỉ số Confidence của các Lesson trong nhánh tăng, và nhãn tag target được update."""
+        # lesson.confidence *= 1.15
         # lesson.merge_status = "merged"
+        pass
     
     def on_branch_abandon(self, branch_name: str):
-        """Khi Nhánh Bị Quét Lái Vào Ổ Bụi rác Hóa Tro (abandoned): Cập Bảng Ném cờ mông lung hạ Vụt Niềm Tin Cho Nhánh Này."""
-        # Cứu Bàn Cụp Áp Trục Niềm Tin vỡ lở: UPDATE lessons SET status = 'abandoned_branch', confidence = confidence * 0.5
+        """Khi một Branch bị cấm/bỏ dở: Những Dataset liên kết vào đây sẽ nhận Cờ Cảnh Báo Abandoned Data, giảm cực hạn chỉ số Tín Nhiệm."""
+        # UPDATE lessons SET status = 'abandoned_branch', confidence = confidence * 0.5
+        pass
 ```
 
-### 2.4 Cửa Trạm Vét Rác Mâu Thuẫn Chặn Chéo Qua Nhiều Nhánh (Conflict Resolution Across Branches)
+### 2.4 Chiến Lược Resolving Khi Trùng Chéo Bài Học Ở Nhiều Nhánh
 
 ```python
 def resolve_cross_branch_conflict(self, lesson_a, lesson_b):
-    """Giằng Xé Khi 2 bên Nhánh Nhào Lên Chỏ Lưỡi Đâm Nghịch Về Cùng Xoay Quanh 1 Điểm Cốt."""
+    """Xử lý độ xung đột khi truy vết ở Cấp độ Multiverse Branches."""
     
-    # Bóc Gói Của Lạ 1: Kẻ Một Nhánh Cưới Rồi, Một Đứa Lép Vế Trơ Trơ Chưa → Đứa Cưới Được Sống (Merged wins)
+    # Nguyên Tắc 1: Merge Wins — Kiến thức của Nhánh đã Merge Master sẽ Đè Lên kiến thức Của Nhánh Còn Lưng Chừng.
     if lesson_a.merge_status == "merged" and lesson_b.merge_status != "merged":
         return lesson_a
     
-    # Khúc Gậy Mắc Kẹt 2: Hai Đứa Cùng Ợ Sống Khỏa Ở 2 Cành Nghênh Nhau → Ghì Chặt Nón Áo Và Giữ Vợ Trọn Cả 2 Đứa Chặn Tags Rõ (giữ song hành Context tách bạch)
-    lesson_a.context += f" (Chỉ mớm khớp ở cành nhánh {lesson_a.branch})"
-    lesson_b.context += f" (Chỉ mớm khớp trên cành nhánh {lesson_b.branch})"
-    return [lesson_a, lesson_b]  # Thả rông cả 2 đứa về
+    # Nguyên Tắc 2: Scope Isolation — Nếu cả hai Nhánh hoạt động Độc Lập, Phân Ly Đóng Khung Context Không Can Thiệp Nhau.
+    lesson_a.context += f" [Note: Context Restricted in Branch {lesson_a.branch}]"
+    lesson_b.context += f" [Note: Context Restricted in Branch {lesson_b.branch}]"
+    return [lesson_a, lesson_b]  
 ```
 
-## 3. Xiết Sát Hợp Đồng Chung Sóng Git
+## 3. Tích Hợp API Lõi Git
 
 ```python
 class GitIntegration:
-    """Nẹp Sát Vùng Bóng Git Bày Mâm Nắm Thâm Căn Hành Trạng Hiện Của Git Cây."""
-    # - get_current_branch: Rình Sủa Nhánh Gốc
-    # - get_current_commit: Chụp Gáy Commit
-    # - get_changed_files: Xóc Điểm Mạch COPL Lòi Vút Lên Quét Thay Đổi
+    """Tương tác trực tiếp và Real-time với Hệ thống Kiểm Soát Phiên Bản Git Của User."""
+    def get_current_branch(self) -> str: pass
+    def get_current_commit(self) -> str: pass
+    def get_changed_files(self) -> list[str]: pass
 ```

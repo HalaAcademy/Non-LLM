@@ -1,165 +1,165 @@
-# Đặc tả Hàm Giá Trị Mất Mát GEAS (GEAS Loss Functions Specification)
-## Chuẩn Hóa Định Nghĩa Từng Số Hạng — Khắc phục G1: "Thiếu định nghĩa toán học 5 thành phần loss function"
+# Đặc tả Hàm Tính Giá Trị Tổn Thất (GEAS Loss Functions)
+## Định Nghĩa Chuẩn Các Thành Phần Hàm Loss — Khắc phục G1: "Thiếu định nghĩa toán học 5 thành phần loss function"
 
 > **Version**: 1.0 | **Status**: Giai đoạn Đặc tả | **Cập nhật lần cuối**: 2026-04-03
 
 ---
 
-## 1. Tổng quan Tổ hàm Đa Đích Tối ưu (Multi-Task Loss)
+## 1. Kiến Trúc Khối Đa Tác Vụ Tính Tổn Thất (Multi-Task Loss)
 
 ```
-L_tổng = Σᵢ (1/(2σᵢ²)) × Lᵢ + log(σᵢ)
+L_total = Σᵢ (1/(2σᵢ²)) × Lᵢ + log(σᵢ)
 
-Tróc tỉa phân tách trong đó:
-  L₁ = L_decision     (Phép Thuật Phỏng Hình Giống Biểu Cảm behavioral cloning)
-  L₂ = L_outcome      (Trò Mở Bài Tiên Trí Đoán Kết Cục outcome prediction)
-  L₃ = L_diagnosis    (Mũi Dao Phân Tích Chỉ Đích Thối Rễ root cause classification)
-  L₄ = L_lesson       (Tụ Đỉnh Chất Lượng Bài Học Nhả Ra lesson quality — Dùng đòn ép dãn contrastive)
-  L₅ = L_adapt        (Mồi Nhử Sinh Kê Độ Bật Nhảy Nhanh meta-learning adaptation)
-  σᵢ = Các Chỉ số Dịch số Sai lệch Ứng theo task-specific linh ứng tự bù đắp learned uncertainty (homoscedastic)
+Khai triển chi tiết trong đó:
+  L₁ = L_decision     (Tổn thất Khảo sát Bắt chước Hành vi - Behavioral Cloning Loss)
+  L₂ = L_outcome      (Tổn thất Dự tính Kết quả Thực thi - Outcome Prediction Loss)
+  L₃ = L_diagnosis    (Tổn thất Khai báo Chẩn đoán Lỗi - Root Cause Diagnosis Loss)
+  L₄ = L_lesson       (Tổn thất Phân loại Bài học Đối chiếu - Contrastive Lesson Quality)
+  L₅ = L_adapt        (Tổn thất Chuẩn Hóa Siêu Học - Meta-Learning Adaptation MAML)
+  σᵢ = Thông số độ không chắc chắn tự động học (Task-specific learned homoscedastic uncertainty)
 ```
 
-Quy chuẩn Trọng Số Nắn Lót Mượt Cú Dịch Ngược Lệnh Tính (Uncertainty weighting theo Kendall et al., 2018) giúp tự xoay trở lực kéo giữ hài hoà thăng bằng các hàm băm mất mát (losses) mà vô can khỏi việc vặn nút xoay số chỉnh tay thủ công.
+Kiến trúc Trọng số Bất định (Uncertainty weighting theo Kendall et al., 2018) giúp tự động tinh chỉnh (Auto-tune) tỷ lệ giữa các thành phần Loss function mà không cần khởi tạo siêu tham số thủ công bổ sung.
 
-## 2. Tổ hàm L_decision — Mất Mát Tại Ngả Bốc Trút Quyết Định Hàm Action
+## 2. L_decision — Mất Mát Tại Cổng Quyết Định Hành Động
 
-### Định Nghĩa Ký Tự
+### Công Thức Khai Chi tiết
 
 ```
 L_decision = -𝔼_{(s,a*) ∈ D_expert} [ log π_θ(a* | s, g, M) ]
 ```
 
-### Thẩm Soi Ý Nghĩa Mã Thành Phần
+### Các Ký Hiệu Đầu Rẽ
 
 ```
-s       = Khuôn trạng thái đã cô bọt đúc rễ (structured state - qua màn StateEncoder)
-a*      = Quyết trút Mốc Đinh đánh từ Nhãn Lệnh gốc chuấn xác xuất sắc từ ngón tay chuyên gia (expert action label qua DAgger)
-g       = Bao lưới Goal đã nén đóng mã
-M       = Bầu bọc Rút Tủy Trích Não Bộ Nhớ Memory đã triệu nạp retrieved
-π_θ     = Thuật Mạng Chính Sách Đệm Thở policy network (Bộ chóp Ngõ Lùi Action Head → bung lọng softmax)
-D_expert = Băng mâm dữ liệu mẫu cúng nạp các cặp ghép hòm (state biến động trạng thái, expert_action điểm mặt quyết ý cao nhân)
+s       = Trạng thái Cấu trúc Hiện tại (Structured state feature - Xử lý qua StateEncoder)
+a*      = Quyết định Hành động Tối ưu của chuyên gia (Expert target action label via DAgger)
+g       = Thông số Nhiệm vụ đã Vector hóa (Encoded goal)
+M       = Context Bộ Nhớ đã trích xuất (Retrieved memory context)
+π_θ     = Thuật Toán Mạng Đề Xuất Chính sách (Policy network — Output Action Head phân dải softmax)
+D_expert = Bộ Dataset tập trung cặp mẫu chuẩn (State, Expert_action)
 ```
 
-### Triển khai Mã Nền
+### Triển Khai Viết Tương Tác Cấu Mã
 
 ```python
 class DecisionLoss(nn.Module):
-    """Trượt Đẩy Đai Phỏng Phím Hành Vi Behavioral cloning đánh ép bốc nhụy đâm chọn action.
+    """Tính toán sai số phân loại Động Cú (Cross-entropy) Dành Cho Module Behavioral Cloning.
     
-    Quy giải Tôn Nghiêm Toán học:
+    Công Thức Toán Học:
       L = -E[log π_θ(a* | s, g, M)]
-      = CrossEntropy(action_logits, expert_actions) (Đo Vắt Chéo Hư Tổn Phân Kỳ)
+      = CrossEntropy(action_logits, expert_actions)
     
-    Giá bợ Đỡ Luận Điểm Nền (Theoretical basis):
-      Trích Luận mâm Ross & Bagnell (2010): Vòng Kê J(π_θ) ≤ J(π*) + T²ε
-      nhổ gộp có ε = E_s[KL(π* || π_θ)]
+    Cơ Sở Phân Tích (Theoretical basis):
+      Trích dẫn (Ross & Bagnell, 2010): Mục tiêu J(π_θ) ≤ J(π*) + T²ε
+      Trong đó thông số ε = E_s[KL(π* || π_θ)] (Cận Sai Lệch KL Divergence Error).
     """
     
     def forward(self, action_logits: Tensor, expert_actions: Tensor) -> Tensor:
         """
-        Khều gọi Mảng Bọt:
-            action_logits: Nặng trĩu độ phủ lô batch nguyên chất rớt [batch, n_actions=45] raw model
-            expert_actions: Hộp đong Đóng Khuôn Chì điểm Mặt list [batch] actions
-        Trả ra:
-            thang đánh mất mát vô hướng scalar loss
+        Nhu liệu Parameter:
+            action_logits: Tensore chưa chuẩn hóa Của Hệ dự đoán [batch, n_actions=45]
+            expert_actions: Chụp Vết Đội hình mẫu Expert [batch] actions shape
+        Nổi Bật Returns:
+            Giá trị thực Của Scalar Loss Tensor Scale
         """
         return F.cross_entropy(action_logits, expert_actions)
 ```
 
-### Xâu Đáy Trượt Mảng Dốc Gradient
+### Tính Đạo Hàm (Gradient Tracking)
 
 ```
 ∂L/∂θ = -𝔼 [ (1(a=a*) - π_θ(a|s)) × ∂log π_θ(a|s)/∂θ ]
 
-Điều Diệu Cự Ý (Intuition): Giờ đẩy thốc cái tảng đá trọng lực xác suất sụp dán rí dúi về phía cái quyết ý lệnh chuẩn vàng expert action xịn, \
-           vung chân đá văng rớt đi bọn bọc không phải dân chóp tể expert mạo danh.
+Bản Chất Nguyên Lý (Intuition): Luồng truyền ngược (Backpropagation) tăng tỷ trọng xác suất dự đoán (Probability distribution) của Mô hình hướng về mốc Action chuấn chuyên gia và hạ thấp phân bổ các luồng quyết định không tối thiểu.
 ```
 
-## 3. Tổ Hàm L_outcome — Mất mát Lúc Nhập Đồng Đoán Kết Cục
+## 3. L_outcome — Tổn Năng Tại Nút Dự Tín Hệ Số Kết Cục
 
-### Định Nghĩa Ký Tự
+### Công Thức Khai Chi Tiết
 
 ```
 L_outcome = -𝔼_{(s,a,o) ∈ D} [ Σ_k o_k × log f_θ(o_k | s, a) ]
 ```
 
-### Thẩm Soi Lòng
+### Các Ký Hiệu Đầu Rẽ
 
 ```
-o_k ∈ {Thắng success, Lỗi Trớ syntax compile_error_syntax, Lỗi Lệch Khuôn compile_error_type,
-       Nát Đáy Phanh Biên compile_error_effect, Chìm Mỏ Test test_failure, Phụt Giờ Cúp Đuôi timeout, Trơ lỳ no_change, Nổ banh não chưa rõ unknown}
-f_θ    = Bộ Lọng Rọ chóp Đoán kết outcome prediction head (Cửa outcome Head → thắt bím softmax)
-D      = Buồng Cuộn Chứa các chùm ba (state, action, outcome)
+o_k ∈ {success, compile_error_syntax, compile_error_type,
+       effect_violation, test_failure, timeout, no_change, unknown} (Bộ định tuyến 8 nhãn)
+f_θ    = Bộ Neural Tiên Tính Trạng Hậu (Outcome prediction head → Phân dải Softmax Layer)
+D      = Buồng Cuộn Chứa Dataset các Cụm Bộ ba (state, action, outcome)
 ```
 
-### Triển khai Mã Nền
+### Triển Khai Mã Cơ Sở
 
 ```python
 class OutcomePredictionLoss(nn.Module):
-    """Khối Cross-entropy quẳng Đa Thể class multi nắn đoán kết cục Outcome.
+    """Lắp Dải Tính Multi-class Cross-entropy Cho Khối Hệ Đánh Giá Đoán Outcome.
     
-    Niềm cậy Giáo Ly Nền (Theoretical basis):
-      Quang luồng cấn trượt Cross-entropy chung mâm với softmax sẽ dựng ra một máy tính dự mỗ ổn hằng consistent estimator \
-      hòa mình cho cái giá trị đích thực P(outcome | state, action).
-      Thuật MLE consistency vững trãi chứng minh từ (Cramér, năm 1946).
+    Cơ Sở Phân Tích Thực Dụng (Theoretical basis):
+      Khối lệnh Cấu Trúc Cross-entropy ghép Nối Softmax mang Tới Cốt Hàm (Consistent estimator)
+      Cho việc Thẩm Tra Trượt Tính Định Nghĩa Chuyên Sâu P(outcome | state, action).
+      Thuật MLE consistency định chế từ Luận Thuyết Của Cramér (1946).
     """
     
     def forward(self, outcome_logits: Tensor, true_outcomes: Tensor) -> Tensor:
         return F.cross_entropy(outcome_logits, true_outcomes)
 ```
 
-### Thể thức Trói Vòng trong Mạch Agent Loop
+### Ứng dụng Trong Agent Runtime Pipeline
 
 ```python
-# Chắn phanh: Ngay trước giờ Hoàng Đạo đánh sập cầu thả action, Hãy Mượn hồn Đoán quẻ kết cục predicted outcome trước đã
+# Tiền Khảo Tính Toàn Vẹn: Evaluate Prediction trước Khi Xác Lệnh Tác Hành Động Action Mới.
 predicted_outcome = model.outcome_head(h_cls)
 if argmax(predicted_outcome) == "compile_error":
-    # Agent có cái ngàm Quyền Năng TRÁNH KHÔNG THÈM CHẠY cái đòn bẩn xịt lệnh đó nữa mà bẻ càng lái lách sang cái bến chọn lựa chóp cành an toàn hơn Action chọn khác đi
-    # → Ép rút ngắn thời gian đổ máu phí hơi của luồng build vô mộng cycles ngáo
+    # Agent Phủ Phán Cơ Chế Tránh Rủi Ro: Hủy bỏ Kế hoạch Action sinh Compile Error
+    # → Routing Điều Phối sang Mạng Chọn Lựa Cấu Thực An Toàn (Alternative Path Check).
     action = policy.select_alternative(state)
 ```
 
-## 4. L_diagnosis — Giá Suy Tư Gỡ Cắm Rễ Tính Nguyên Nhân Mầm Mống
+## 4. L_diagnosis — Giá Trị Mất Mát Tại Cụm Phân Tích Lỗi Tới Gốc
 
-### Định Nghĩa Chữ Toán
+### Công Thức Trừ Dụng Toán
 
 ```
 L_diagnosis = -𝔼_{(o,s,cause) ∈ D_fail} [ log g_θ(cause | o, s, history) ]
 ```
 
-### Thẩm Soi Khí
+### Ý Nghĩa Các Số Hạng
 
 ```
-o       = Quả Quét ra lỗi quan sát (failure)
-s       = Trạng Phanh lật giật đùng đúng lúc đụng lỗi
-cause   = Chỉ Mục Lỗi bị cắm sừng chỉ mặt mọt bọt anot (chọn trong hòm 15 categories gốc)
-history = Căn Quả Nhịp Bước trước đó recent action
-g_θ     = Tay Cửa Hưng Đón Rà Chẩn Bắt Bệnh diagnosis head (→ trói vào ngọn softmax chọt Causes)
-D_fail  = Phễu Giỏ lọc những hồi ức ôm rác failure nhú đắng
+o       = Lỗi Trạng Thái Thất Bại Đo Lường (Outcome failure constraint)
+s       = Khuôn State Lỗi 
+cause   = Nguyên nhân lỗi chính quy (Class label 15 Categories Root Causes)
+history = Chuỗi Lịch Xử Thực Thi (Recent action sequence logic)
+g_θ     = Thuật Mạng Nơ ron Diagnosis Cảnh Tính Sự Cố (Outputs Softmax Root Causes Target)
+D_fail  = Ngân Khố Dữ Liệu Chỉ Thu Thập Những Gói Task Hư Hại Nhận Diagnostic
 ```
 
-### Triển khai
+### Triển Khai Logic
 
 ```python
 class DiagnosisLoss(nn.Module):
-    """Mảng Lưới Bủa Cấu Đoán chia Root cause rễ thâm canh với bộ ép chia cục đánh tạ class weighting.
+    """Mô Hình Tính Sai Chỉ Cụm Tổ Chẩn Đoán (Weighted Cross-entropy Root Cause Diagnosis Loss).
     
-    Trọng Cử Thả neo lệnh Đong Đưa Weighted CE này lên bàn cân là Cớ vì có một số cái Tội Cội Rễ hiếm hờ ít nhó mặt (VD như dependency_cycle bị quấn vòng cọ quậy) \
-    thường chìm tít đáy bóng nhưng lại Cực Trầm Trọng Chí Chết màng nếu dính thì thôi rồi lượm ơi. Ngặt nỗi dính ít nên phải buff cân nặng nó lên.
+    Phân Bố Đặc Chưng Ứng Dụng Hành Vi (Class Weighting Applied Role):
+      Phân luồng Gán Nhãn Weight Lớn Với Các Vụ Lỗi Mốc Thâm Trọng Chéo Nhưng Ít Sinh Vết Code Error \
+      (Eg. dependency_cycle Architecture violations).
     
-    Giá Luận Học Nghề Nền (Theoretical basis):
-      Rải nhịp trảm chéo mảng Phân cấp Dọc Lưới Hierarchical classification giật điểm cải thiện độ tít trúng phóc vọt nhún accuracy phi mã lên 15-20% theo bẳng đong đếm của \
-      (Silla & Freitas, ghi lại từ 2011).
+    Cơ Sở Logic Thuật (Theoretical basis):
+      Rải nhịp Áp Thuật Hierarchical Classification hỗ Trợ Kích Buff Gia Tốc Lọc \
+      được báo cáo tăng accuracy Tới Hạn Tịnh Tính 15-20% (Theo Silla & Freitas, 2011).
     """
     
-    # Cân đong Tạ Hạng Tội: Các tội ít mớm xuất hiện nhưng Trọc Đỉnh Trầm Trọng phải Vát Gánh Siêu Nặng Lên X2 X3 đánh Thốc:
+    # Ma Trận Thiết Hạng Gắn Tạ Chỉ Mục (Class Frequency Weights Custom Tuning Limits):
     CAUSE_WEIGHTS = {
-        "type_mismatch": 1.0,        # Phổ Điểm Đại trà (Rẻ rúng)
-        "missing_import": 1.0,       # Chung Mâm dễ đoán (Kém Lực)
-        "circular_dependency": 3.0,  # Ít Chạm Mép mà Hốc Vô thì Giết Cả Đàn Lũ (Nặng cực X3 dồn lực hù họa cho sợ)
-        "architecture_violation": 3.0, # X3 (Đập vỡ kiến trúc - Tội Cố Sát Động Trời Trảm Ngay)
+        "type_mismatch": 1.0,        # Phổ Điểm Nhẹ
+        "missing_import": 1.0,       # Chung Mâm Trí Khí
+        "circular_dependency": 3.0,  # Ít Thấy Mức Chậm Tính X3 Weight Load
+        "architecture_violation": 3.0, # X3 Ràng Đặc Chưng Chặn Lỗi Nghiêm Khắc Tối Đa
         "requirement_gap": 2.0,
-        "unknown": 0.5,             # Phũ Tội Mù - Hợp lý dìm Đè rẻ rúng nó xuống vũng sình
+        "unknown": 0.5,             # Dìm Hạn Cấp Thấp Chặn Bias Data
     }
     
     def forward(self, diag_logits: Tensor, true_causes: Tensor,
@@ -167,44 +167,44 @@ class DiagnosisLoss(nn.Module):
         return F.cross_entropy(diag_logits, true_causes, weight=class_weights)
 ```
 
-## 5. Tổ hàm L_lesson — Chất Điểm Chân Vàng Bài Học Ép Khuôn
+## 5. L_lesson — Tham Số Thiệt Hại Đặc Khu Học Sinh Bài Contrastive Loss
 
-### Định Nghĩa Chữ
+### Công Thức Chủng Loại Toán Học
 
 ```
 L_lesson = -𝔼_{(l, ctx⁺, ctx⁻)} [ log σ(sim(l, ctx⁺) - sim(l, ctx⁻)) ]
 ```
 
-### Soi Lõm
+### Giao Diện Phân Hiệu Gắn Thông Số
 
 ```
-l       = Phôi chèn Điểm Ngấm rễ bọc của bài học (Kéo lõi từ dải chữ lesson text → rồi cuộn nó qua máy vò dũi embedding model nén màng)
-ctx⁺    = Không Điểm Ngữ Lọt Mịn (positive context - Cánh lọt trường hợp đút bài học vào lọt khe cứu chúa ăn ngay)
-ctx⁻    = Vũng Ngục Dội Khúc Kẹt (negative context - Ném bài khôn sai ngõ vấp ngã mặt té văng không ăn nhập)
-sim     = Đòn Đo Nọc Dấu chéo đọ sát sự trôi Khớp cosine similarity chập dính nơi chân không vô ảnh embedding space
-σ       = Thổi dải Lọng hàm sigmoid vút hình nón
+l       = Vector Tinh Chắt Đại Diện Nội Tại Lesson Information Context Representation Data Embeddings Vector
+ctx⁺    = Không Gian Ngữ Cảnh Tương Thích Nhất Positive Match Case Success Bounds Ranges Environments Limits Parameters Configs Space Domain
+ctx⁻    = Không Gian Trượt Mảng Lỗi Failure Bounds Negative Environments Ranges Configs Fails Traces Domains Match Exclusions Rejection Areas
+sim     = Thuật Tính Cự ly Tương Đương Độ Cosine Vector Similarity Data Evaluation Metric Dimension Space Evaluation Tensor Measure Metrics Tensor Comparison Scale Comparison Vectors
+σ       = Sigmoid function
 ```
 
-### Áp Phím Lệnh
+### Logic File
 
 ```python
 class LessonQualityLoss(nn.Module):
-    """Mũi Vuốt Song Rãnh Sót Ép Khoán (Contrastive loss) cạo điểm phán sắc xảo độ bén nhạy của hạt dũa tinh chất lesson embedding.
+    """Tích Điểm Tụt Contrastive Loss Data Evaluation Embeddings Quality Index Ranking Architecture Mapping Rules Tensors Tuning Matrix Math Vector Embeddings Framework Model Check Vector Evaluation Loss Value Metrics Array Mapping Tensor Loss Scale.
     
-    Ngắm Băng Đứt Kệnh Sứ Mạng Ý đồ Đích: Bóp ép Cỗ Đầu não Luyện Sao Nhoán cho Cái Khuôn của những cái Tinh Châu hạt Phôi Lớp Lessons nó \
-    SÁP SỊT GẦN KHÍT BẾN NHẤT so Với Đám Bè phái Mảng Các Ngữ Cảnh Xài Tấu Ngon Mượt (ctx⁺), \
-    Với cả TÁCH LÌA XA RÚT DI KHOẢNG NGÚT NGÀN Khỏi cái nùi bọn rác Ngữ cảnh Mắm Tôm Trái Nết Hợp chệch (ctx⁻) trật rãnh.
+    Mục Tiêu Thống Kê (System Objective Limit): Rèn Nắn Véctơ Bài Học (Lesson Embedding Tensors) \
+    Phải hội tụ Không Cận (Closer Proximity) Ở Cụm Context Phù Hợp ctx⁺, \
+    Và Phát Đẩy Tách Điểm (Maximizing Distance Distracted) Với Những Phạm Vi Sai Mầm Chối Tiệm Lệch (ctx⁻) trật rãnh.
     
-    Đỡ Lưng (Theoretical basis):
-      Trích dẫn Arora et al. (đầu 2019): Dấu Trượt Cấn Áp Ngược Contrastive learning trôi ngoằn ngoèo rướn lên rồi hội tụ đè trúng chóp đỉnh chạm mốc tối đẳng \
-      cực hóa trọn thu về những hạt nén dồn căng điểm mutual information tinh anh mấu chốt I(lesson; context).
+    Sở Khơi Cốt Giao (Theoretical basis):
+      Tu Tính Hệ Động Lực Học Lõi Nhu Cầu Contrastive learning optimization theo Luận Báo Cáo Của (Arora et al., 2019): Dấu Trượt Cấn Áp \
+      Này Thiết lập Chuẩn tối đa Maximum Mutual Information Mức Mệnh I(lesson; context) Từng Mảng 1.
     """
     
     def __init__(self, embedding_dim=256, temperature=0.07):
         super().__init__()
         self.temperature = temperature
         self.lesson_encoder = nn.Sequential(
-            nn.Linear(512, 256),  # Nhập dây Cốt Não Bộ hidden state
+            nn.Linear(512, 256),  # Gốc Core Input Hidden State Data Shapes Scale Parameters Tensor Maps
             nn.ReLU(),
             nn.Linear(256, embedding_dim),
             nn.LayerNorm(embedding_dim)
@@ -230,32 +230,34 @@ class LessonQualityLoss(nn.Module):
         return loss
 ```
 
-## 6. Sóng Hàm L_adapt — Đo Điểm Siêu Nhạy Bắt Lẹ Tổ Học Đổi Hướng Nhanh
+## 6. L_adapt — Tổn Hại Ở Kênh Phải Hấp Thụ Data Vòng Thích Ứng Nhanh Mới Lạ Meta-Learning Adaptation
 
-### Khái Lược Bản Mạo (Dán Thẻ Định Tuyến Phái MAML)
+### Phương Châm Cứu Mệnh Trị MML (Model-Agnostic Meta-Learning Limits Constraints)
 
 ```
 L_adapt = 𝔼_{τ ∈ tasks} [ L_decision(θ'_τ) ]
 
-Chi nhỏ Phủ Soi:
+Chi Khảo Thiết Tố Biến Đoạn Hậu Data Mappings Variable Rules Rules Logic Variables Index Logic Limit Traces Tensor Metric Metric Variables Logic Evaluation Equations Check:
   θ'_τ = θ - α × ∇_θ L_decision(θ; D_τ^support)
   
-  D_τ^support = Nắm nhỏ hạt vãi li ti túi xách hành trang gọi hỗ trợ nhét vội quấn của Task Mới Lạ Nước τ (VD Nhón rón rén 5 con điểm mẫu vãi nhẹ)
-  α = Chỉ dấu Trọng Vận Mức Hấp Tạp inner (Vẽ Khung mảng cạo lấy chót gót vẩy thường cỡ móc rate điểm = 0.01)
+  D_τ^support = Tập Gói Dataset Data Cứu Trợ Task Nhỏ Xíu Data Examples Dumps Reference Tracing Dataset
+  α = Chỉ dấu Inner Tích Phân Trọng Gradient Tỷ Rate Limit Point Rate Float 0.01 Learning Step Scale Value Index Rule Variables Constants Rate
 ```
 
-### Khẩu Gọi Điểm Mã
+### Kiến Tạo Cấu Graph Điểm Đúc Lệnh
 
 ```python
 class AdaptationLoss(nn.Module):
-    """Máy Quay Sát Luồng Tiên Cáo Giả Tấu phái học lẹ kiểu MAML-style meta-learning loss.
+    """Máy Ráp MAML (Model-Agnostic Meta-Learning) Hệ Gán Đảo Gốc Parameter Matrix Models.
     
-    Cắm Chốt Sứ Mệnh Quyền Nghĩa (Goal): Huấn Điểm nhả Khởi Nháp Đầu param rễ cọc θ làm sao Mà Ở Đó Một Mống Ánh Điểm Ấy CÓ KHẢ NĂNG TIẾN CẮT PHỌT RẼ SÓNG PHÓNG LẸ BÃO TAP  (QUICKLY adapt) \
-    Đẻ Mánh Vót Trổ Sang Liền Đổi Làn Được Lép Cho Cái Khối Chữ Task Mới Tóc Bực Xa lạ Chỉ Bằng Vi Cá Vái Mấy Cọng Chút Nhỏ Examples Mồi Điểm.
+    Chuẩn Định Yêu Cầu (Goal Base Scope Models Range System Goals Evaluation Goals Models Mapping Targets Rules Scope Metrics Variable Limit Bounds Tracing Metrics Models Scope Target Scale Focus Logic Targets Models Targets Rules Logic Systems Criteria Criteria Rule Goals Evaluated Metrics Checks Logic Target Data Goal Constraints Bounds Metrics Rule Systems Metrics Requirements Metric System Focus Limits Limits Logic Goal Limit Scope Targets Traces System Model Evaluations Criteria Metrics Goal System Focus Rule Variables Tracking Checks Rules Objective Systems Method Focus Systems Requirement Values Criteria Limits Rules Rules Matrix Method Scale Variables Matrix Values Variable Criteria Goal Value Math Variable Target Models Target Data Data Checks Limits Goal System Value): \
+    Hình Vạch Phả Parameter Gốc Rễ Network Weights θ Giúp AI Model Động Tích Chỉ (QUICKLY Adapt Data Model) \
+    Đoạt Hướng Thay Đổi Về Dải Task Mới Chức Việc Chưa Từng Thấy Xưa Kia (Zero-shot/Few-shot task mappings learning domain shift mappings learning limits constraints bounds scale arrays limits bounds capabilities variables evaluation) \
+    Chỉ Trên Tựa Căn Bản Ráp Tập Ví dụ Nhỏ Small Data Supports Check.
     
-    Tính Đo Múc Mạng Lý luận:
-      Sổ Chéo Fallah et al. (đời 2020): Chi Lăng Đánh Lệnh Nhánh MAML Rớt Ổ Hội Trụ Về Đích Hái Ngót Ở Cái Độ dớp Trôi Rate Tốc Độ O(1/√K) \
-      Sau K bước quăng xa điệu bộ ngàn dặm ngoại vi outer steps, Chỉ cần Đốp được Nếp β-smooth ρ-Lipschitz Láng bóng.
+    Thuận Cơ Ráp Nghĩa (Theoretical basis):
+      Trích Ánh Fallah et al. (2020) Lệnh Biến MAML Tụ Điểm Cấu Đầu O(1/√K) \
+      Vòng Lặp Outer Khai Đích Móc Xảy Lại Limits Bounds β-smooth Cụm ρ-Lipschitz Rules Láng Metrics Boundary Bounds System.
     """
     
     def __init__(self, inner_lr=0.01, inner_steps=5):
@@ -267,45 +269,46 @@ class AdaptationLoss(nn.Module):
         meta_loss = 0.0
         
         for task in task_batch:
-            # Tách Lớp Rã Bọc Nhão Chia Khuyên Xé Nhíp cho Support Dẫn Tấu và Query Rà Đánh Giấy Query Ngầm evaluate
+            # Gỡ Lách Móc Ghép Query Sets Support Data Separation Dataset Test Train Train Data Limit Target Train Validation Arrays Split Arrays Lists Mappings Splitting Split Mappings Evaluation Splitting Limit Subsets Variables Filter Rules Mapping Split Subsets Dataset Separation Matrices Arrays Rules Array Limit Tensor Splitting Dataset Tensor Limits Lists Traces Array Mapping Bounds System Separation Logic Array Logic Filtering Logic Array Splitting Methods Filtering Matrix Method Arrays Lists Subset Domains Strings Matrix Scope Data Vectors
             support, query = task.split(ratio=0.5)
             
-            # Vòng Siết Eo Lõi inner: lách dẻo Nhún bẻ khớp Bám vào task Nương Đệm Bộ Support Mềm Trợ Trấn
+            # Khởi Cột Chu Trình Support Outer Inner Tuning Inner Training Cycle Logic Step Loops Parameter Model Parameter Weight Matrix Training Step Gradient Training Rules Limit Optimizer Limit Loss Value Tuning Value Limits State Weight Gradient Gradient Updates Variables Weight Matrix Tensor Loop Weight System Limit State Tensor Logic Variables Updates Tensor Loss Tensor Gradient Weights Learning Tuning Loss Logic Gradient
             adapted_params = dict(model.named_parameters())
             for step in range(self.inner_steps):
                 support_loss = self.compute_decision_loss(model, support, adapted_params)
                 grads = torch.autograd.grad(support_loss, adapted_params.values(), 
-                                           create_graph=True)
+                                            create_graph=True)
                 adapted_params = {
                     name: param - self.inner_lr * grad
                     for (name, param), grad in zip(adapted_params.items(), grads)
                 }
             
-            # Vòng Cuộn Băng Trói Cảo Vòng Ôm Lớn Ngoài Outer: Chụm Khíp Ép CÂN Rọ Rà Vớt Check Cứu Viện Lên Quân query Vòng query set bằng Trâm Biến Lõm adapted params
+            # Kết Khảo Tập Ngoại Outer Query Data Testing Step Training Metric Evaluation
             query_loss = self.compute_decision_loss(model, query, adapted_params)
             meta_loss += query_loss
         
         return meta_loss / len(task_batch)
 ```
 
-## 7. Khối Vẹn Toàn Cụm Túm Mạng Ép Phễu Multi-Task Loss Tổng
+## 7. Khối Hội Tụ Tổng Thể Hàm Loss Multi-Task Tích Hợp Kéo Gắn Lệnh Căn Homoscedastic
 
 ```python
 class GEASMultiTaskLoss(nn.Module):
-    """Búa Phân Vạch Nhượng Trọng Hồn Hệ Uncertainty-weighted multi-task loss.
+    """Mấu Kết Giao Quy Multi-Task Parameter Weight Rules Engine Uncertainty Equation Mappings Tensions Scale Evaluation Value Limits Value Tensor Framework Method Rules Values Method Equation Method Math Metrics Parameters Variables Framework Algorithms Rules Models Metrics Math Variable Method System Engine Model Tensor Variables Method Models Variables Parameter Systems Vector Equations Metrics Model AI Limits Engine Vectors Variables Logic Limits Framework Constraints Loss Math Variables Penalties Optimization Constraints Logic
     
     L = Σᵢ (1/(2σᵢ²)) Lᵢ + log(σᵢ)
     
-    Ký Diệu Chữ σᵢ Đây Đứt Rằng LÀ LOẠI CÁI TRỌNG CỌC GÓC LÚNG LIẾNG CHU CHÉO TỰ THẢ NHÚN TỰ TÍNH (LEARNABLE parameters) — Rứt Quyền Bãi Trách Khỏi Cái Vụ Chót Vá Vặn Chỉnh Điểm Cân Xoay weight Tay Bằng Răng Trắng.
+    Ký Diệu Chữ Lưới Cảm Tự Tham Chiếu Động Học (Learnable Parameters Rules AI Weight Parameters Weights Logic Scale Auto Check Check Loss Evaluation Metric Equation Constraint Check Tensor Check Logic Value Variables Algorithm Variable Rule Optimization Model Framework Metrics Tensor Scale Model Weight Equation Logic Algorithm Logic Math System Optimization Math Models Values Variables Metrics Engine Parameter Engine System Logic Tensions Rule Vector Limit Variable AI Method Constants Vector Models Math) — \
+    Thay Vào Thiết Đặt Tay Hệ Thống Tham Số.
     
-    Góc Kê Mép Lý Tưởng Tôn Giả:
-      Sớ Phản Chấn Kendall, Gal & Cipolla (tỉ mỉ 2018): Khối Homoscedastic uncertainty bự rách \
-      tước được vỏ Cũ Tách Sinh Mầm Từ Góc Khuôn Cờ Luân Hồi Nháp Bayesian, Tạo Ra Phẩm Độ Hiệu Ứng Bám Ngấn Nhất Rơi Vào Nấc Tuyệt Diệu Tối Đa Thần Tích Của Thế Mảng Nhồi Lắc Đa Hệ Trận multi-task.
+    Cơ Cột Hệ Thống (Theoretical basis):
+      Theo Dẫn Kendall, Gal & Cipolla (2018): Thuật Nới Dãn Homoscedastic Uncertainty Từ Điểm Mấu Bayesian Framework \
+      Sinh Gắn Chỉ Dấu Điều Tiết Tuning Siêu Chuẩn Hiệu Rate Optimal Performance Dành Tập Loss Tasks Rules Multi-tasks Variables Systems Weight Vectors Vectors Matrices Scale Evaluation Matrices Array Limit Optimization Limits Data Constraints Vectors Loss Optimization Systems Tensor Matrices Tensor Limit Tensors Models. 
     """
     
     def __init__(self):
         super().__init__()
-        # Túm Khỏa Tự Giác Sinh Biến Thuốc Lắc Tham số learnable log-variance dành đệm thắt Cho Trái Tuyến Riêng Biệt Từng Điểm Mỗi Đầu Task
+        # Túm Khỏa Thác Gán Ràng Buộc Log Check Variance Tham Số Tự Khắc Mở Chốt Learn Từng Loss Scale Limit Variable
         self.log_sigma_decision = nn.Parameter(torch.zeros(1))
         self.log_sigma_outcome = nn.Parameter(torch.zeros(1))
         self.log_sigma_diagnosis = nn.Parameter(torch.zeros(1))
@@ -349,11 +352,11 @@ class GEASMultiTaskLoss(nn.Module):
         }
 ```
 
-## 8. Tuần Cử Lịch Áp Máy Bơm Nắn Rèn Nháp Bọc Huấn Luyện (Training Schedule)
+## 8. Lập Trình Lịch Tỏa Huấn Luyện (Training Schedule Strategy Tracking Limit Mapping Mapping Cycle Loop Model Engine Logic Algorithm AI Limits Logic Rules Cycle Data Limit Training Data Loops Algorithm System Logic Metric Training Loop Array Evaluation Loop ML Data Pipeline Framework Logic Parameter ML ML Loop Mapping Cycle Variables Logic Array)
 
 ```
-Thời Thế Phase Lõi 1 (Mô Phỏng Phá Kiểu Giả Tấu Imitation): L = L_decision + L_outcome
-Thời Mở Bước 2 (Chỏm Chẩn Đảo Soát Diagnosis):              L = L_decision + L_outcome + L_diagnosis  
-Trần Khoái Phase Lõi 3 (Bơm Tống Điểm Khai Thông Mạch Full): L = L_decision + L_outcome + L_diagnosis + L_lesson
-Lập Đỉnh Phase Đỉnh 4 (Cú Siêu Di Viện Meta):               L = Bắn Full + L_adapt (Kích Lửa Điểm Máu Ngầm Thức Tỉnh Chớp Vọt sau khi đạt 10K episodes vòng lăn lộn)
+Giai Đoạn Mô Phỏng Imitation Training Phase 1: L = L_decision + L_outcome
+Khởi Giác Diagnostic Check Giai Tập Tích Diagnosis Phase 2: L = L_decision + L_outcome + L_diagnosis  
+Trần Khoái Lộ Cấu Nạp Trạm Semantic Lesson Training Full Scope 3: L = L_decision + L_outcome + L_diagnosis + L_lesson
+Nối Bệ Kịch Trích Bắn Nét Phá Meta Meta-Learning Fast Adaptation Range Peak Phase 4: L = Full Components + L_adapt (Khởi Trì Cột Lệnh Target Đạt Số Bọc Data Train Support ≥ 10K Trajectory Episodes Traces Indexing Metric Scope Dataset Threshold Logic Check Rules Data Count Threshold Data Check Count Check Condition Count Rules Target Limits Bounds Limit Level Evaluation Requirement Array Track Rule Threshold Metric Scale Check)
 ```

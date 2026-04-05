@@ -1,135 +1,95 @@
-# Đặc tả Đánh Giá & Thước Đo Khúc Căn GEAS (Evaluation & Benchmarks)
-## Thang Điểm Mét Đo Sòng Phẳng — Khắc phục G10: "Chưa Có Cam Kết Hội Tụ Học Nhả"
+# Đặc tả Hệ Đánh Giá & Benchmark COPL/GEAS (Evaluation & Benchmarks)
+## Khung Đo Lường Chất Lượng Định Lượng (Quantitative Quality Metrics)
 
 > **Version**: 1.0 | **Status**: Giai đoạn Đặc tả | **Cập nhật lần cuối**: 2026-04-03
 
 ---
 
-## 1. Không Gian Chiều Đo Lường (Evaluation Dimensions)
+## 1. Không Gian Số Liệu Đánh Giá (Evaluation Dimensions)
 
-| Chiều Kích Phẳng Dimension | Bóp Nắm Bắt Cái Gì | Đích Ngắm Xuyên Tâm Tới |
-|---|---|---|
-| Tỷ Lệ Ăn Nhịp Tác Vụ (Task Success Rate) | Số Phần Trăm % Nhiệm Vụ Vặn Xong Mỹ Mãn Mà Chẳng Thở Oải Nhờ Cứu Viện Con Người | ≥70% |
-| Điểm Chạm Lệnh Vun Giòn (Action Accuracy) | Mức % Quyết Đóng Chọn Chuẩn Y Xì Rập Cố Vấn Tôn Gia | ≥80% |
-| Chuẩn Bắt Mạch Bệnh (Diagnosis Accuracy) | % Trúng Sảng Điểm Nọc Mầm Chẩn Lỗi Rễ Cốt Root cause | ≥75% |
-| Tinh Khối Chuẩn Gốc Rễ Bài Học (Lesson Quality) | Mức Kéo Chọn Nảy Đúng Trọng Bài Vàng Đắp Cho Trúng Vấp | ≥70% |
-| Hiệu Ứng Bám Cơ Rút Gon Bước Gõ (Efficiency) | Số Vạch Đo Lệnh So Đọ Cân Kéo Tương Vấn Chuyên Gia Ráp | Ăn Điểm Móp ≤2x Chuyên Gia |
-| Tốc Cuộn Rate Học Bóng Trí (Learning Rate) | Điểm Phết Phá Điểm Chạm Cảm Trăm Tiến Tuốt Dấu Qua Các Ván project | Cầm Kim Giác Đo Được Sát Số |
+Hệ thống đánh giá năng lực của GEAS dựa vào bộ 6 Chỉ số đo lường hiệu suất chính (Key Performance Indicators):
 
-## 2. Vạn Kiếm Bộ Càn Quét Điểm Benchmark
+| Chỉ Số Đánh Giá (Metric Dimension) | Ký Hiệu | Ý Nghĩa Chuyên Môn | Chỉ Tiêu Cấp Thấp Nhất (Threshold) |
+|---|---|---|---|
+| **Tỷ Lệ Hoàn Thành Tác Vụ** (Task Success Rate) | **TSR** | Tỷ lệ phần trăm tính chất hoàn thành Task End-to-End mà không cần User can thiệp. | **≥ 70%** (Production Level) |
+| **Độ Chính Xác Hành Động** (Action Accuracy) | **AA** | Điểm So Sánh Khớp hành vi giữa AI Agent Action Selection và Lịch Sử Log Expert Hành Động Kỹ Sư. | **≥ 80%** |
+| **Độ Chuẩn Xét Phân Tuyến Lỗi** (Diagnosis Accuracy)| **DA** | Tỉ lệ % tìm ra Đúng Nguyên Nhân Cốt Lõi (Root-Cause) của các lỗi Biên Dịch Thất Bại. | **≥ 75%** |
+| **Tính Hợp Chuẩn Extract Bài Học** (Lesson Quality)| **LQ** | Xác suất Gọi đúng cấu trúc của Lesson Database trong Context truy vấn Similarity Cosine Search. | **≥ 70%** |
+| **Hiệu Suất Thực Thi** (Efficiency Ratio)| **ER** | Tổng Tỷ số so sánh Số Lượng Hành Động của Agent (Steps) với Số Lượng Hành Động của Chuyên Gia. | Số Bước Tiêu Hao **≤ 2X** Chuyên Gia |
+| **Tỉ Lệ Thích Ứng Học Nhanh** (Learning Rate/Curve) | **LRate** | Tỉ lệ Tiến bộ trong việc khôi phục và Đọc Kiến Thức từ các Lượt Học (Episodes). | Mạch Progress Không Đứt Gãy Tụt Lùi |
 
-### 2.1 COPL-Bench-20
+## 2. Bảng Mô Hình Đánh Giá Chuẩn Hóa: COPL-Bench-20
 
-```
-20 Cục Quả Tạ Thép Task Cho Bóp Mép Nặn Nắn Đánh Giá Thẳng Tay Thôi Thúc:
+Bộ Khảo Sát Đánh giá GEAS sử dụng bộ **20 Bài Toán Mẫu Khó Tích Lũy (Target Tasks)** phân bổ dọc theo 3 Cấp Độ (Tiers):
 
-Đai Cấp Dễ Rớt 1 (5 vũng bài tasks): Bập Mảng Buồng module đơn rẽ bới
-  Bench-01: Khuôn Váp struct đắp rễ nối 3 hàm function
-  Bench-02: Điền Băng Vét Triển Trait vào Ngôi type Đã Chôn
-  Bench-03: Va Nốt Giã Chết 3 Quả Bug Type Căn Lỗi Găm Mủ code
-  Bench-04: Đắp Vá Hòm Khóa Contract Cúp Trói Vòng Nhảy Cả 5 functions
-  Bench-05: Khởi Chạo Dựng module Ngấu Profile Chuẩn + Xốc Effect Gắn
-  ...
+### 2.1 Phạm Vi Bài Toán Cấp Độ Benchmarks (Target Suites)
 
-Vòm Cấp Rễ Trạc Găm Chéo Khó Nhằn 2 (8 nốt tasks):  
-  Bench-06: Rút Mảng Tấn Công Sinh Kép CAN driver (Nền cõi MCAL)
-  Bench-11: Sang Bằng Phẳng Vuốt Trụ Móng Khấp Bậc Code Rác Tạp refactor Cho Vuông Ống Vẩy Lớp layered
-  Bench-14: Băm Chạm Xé Cụm Làm Dự Án Bự EVCU Tuyệt Hảo Trấn Trọn
-  Bench-20: Rũ Bọc Áp Khúc Toàn Diện Giấu Kép Trục Hệ (Require → code → test → báo cáo trọn gói)
-```
+- **Cấp độ 1 (Low-hanging Fruits - 5 Tasks):** Tác vụ khởi tạo File, Module, Cấu trúc Struct, định tuyến Data Mặc định.
+  - Ví dụ: `Bench-01` (Tạo Header File chứa 3 Modules Struct có Dependencies).
+- **Cấp độ 2 (Complex Logic Blocks - 8 Tasks):** Tác vụ Dựng Driver Kiến Trúc Hệ Ngoại Vi, System State, Lỗi Cấu Trúc Architecture Dependencies.
+  - Ví dụ: `Bench-06` (Xây Dựng Khối CAN Driver Mapping Trong Sub-layer MCAL).
+- **Cấp độ 3 (Full Stack Architectural System - 7 Tasks):** Tác vụ System Application Tích hợp Toàn diện (Toàn mảng EVCU, Multi-layers, Cấu trúc OSEK OS).
+  - Ví dụ: `Bench-20` (Requirements -> Lập Trình Modules OSEK OS -> Tự Sinh Unit Test -> Generates Report Của File Hệ Thống).
 
-### 2.2 Điểm Sổ Chấm Thu Lưới Săn (Scoring)
+### 2.2 Công Thức Chấm Điểm Thắng Thua (Scoring Algorithm)
 
 ```python
 class Benchmark:
+    """Class Đánh Giá Từng Bộ Agent Run theo Chuẩn Thông Số."""
+    
     def score(self, task: BenchTask, agent_result: AgentResult) -> BenchScore:
         return BenchScore(
-            # Đòn Đâm Cột Trụ Đáy Primary
+            # Tiêu Cực Cốt Lõi (Primary Direct Outcome Checks)
             success=agent_result.task_completed,
             steps=agent_result.total_steps,
             expert_steps=task.expert_steps,
             efficiency=task.expert_steps / max(1, agent_result.total_steps),
             
-            # Cân Khối Vàng Đóng Nét Quality
+            # Cấu Trúc Khối Output Check File Quality Tích Lũy Bền Vững (Quality Validations)
             build_success=agent_result.final_build_success,
             trace_coverage=agent_result.final_trace_coverage,
             
-            # Sức Trườn Bước Kéo Phanh Learning
+            # Thuật Đo Học Machine Learning Progress Analytics
             lessons_extracted=len(agent_result.lessons),
             errors_self_corrected=agent_result.self_corrections,
         )
 ```
 
-## 3. Khối Điểm Chỉ Tiêu Rắn (Key Metrics)
+## 3. Kiến Trúc Toán Học Đo Lường
 
-### 3.1 Nhíp Tróc Điểm Phá Task (Task Success Rate - TSR)
+### 3.1 Giao Tính Học Hỏi Liên Hoàn (Learning Curve Monitor)
 
-```
-TSR = (Xấp Tổng Úp Tasks Đã Gom Kết Toàn Diện Mỹ Mãn) / (Trọc Liện Rổ Tasks Nắm Lại Đụng Ngón Vô Đóng)
+- Quỹ Đạo Chỉ Số Tiến Trình: Tỷ Lệ TSR So chiếu Cùng Dải Số Số Lượng Episodes System Training.
+- Yêu Cầu Cấu Trúc Đạt Ngưỡng Lõi:
+  - Cột mốc 1 (Sau 2k Episodes mồi): TSR Đạt Cấp ~40%.
+  - Cột mốc 2 (Sau 8k Episodes Phân Chẩn): TSR Tăng ~75%.
+  - Cốc mốc 3 (Tích lũy Phá Đảo System Final Runtime): TSR Lên >=80% Ổn Định Biên Độ Nhiệt.
 
-Chỉ Điểm Ngạch Cổng Bóp:
-  Dằn Sau Pha Súc Huấn 1: TSR ≥ 30% (Cho rổ Trạm Dễ Nhẹ Level 1)
-  Sau Tút Gọt Cựa Pha 3:  TSR ≥ 60% (Lướt càn đủ bãi cấp levels)
-  Quất Rẽ Thượng Bậc Cục Pha 5: TSR ≥ 70%
-  Vung Sức Ngai Lên Ngọn Ở Production (Khởi 6 Nguyệt Lắn Ván): TSR ≥ 80%
-```
+- Sự Kiện Hủy Kéo Thụt Lùi: Bất kỳ sự rớt biểu đồ tụt liên tiếp qua >= 2 Epoch đánh dấu khả năng Catastrophic Forgetting.
 
-### 3.2 Tác Vụ Ăn Trúng (Action Accuracy - AA)
+### 3.2 Tần Số Năng Lượng Rút Gọn Tác Vụ (Efficiency Ratio - ER)
 
 ```
-Độ So Kéo Y Xì Ngòi Bút:
-AA = Σ 1(aᵢ = a*ᵢ) / N
-(Với aᵢ Là ngòi bút nã của Đặc vụ, Và a*ᵢ Lại Ngọn Vàng Gõ Trúc Tôn Gia Tạc)
-
-Do có điểm Chạm Rãnh Hợp Lệ Của Cùng 1 Giải Pháp Đè Nhau Nút Đụng Nhiều Chéo Mép: Lấy Thêm Số Nghĩa Theo top-3
+ER = Steps_of_Human_Expert_Baseline / Steps_of_AI_Agent
 ```
+Ngưỡng Yêu Cầu (Pass Condition Limit): `ER ≥ 0.5`. (Tức Agent Không Chậm Quá Gấp 2 Lần Tốc Độ Xử Lý Chuyên Gia - Phạt Cấm Nếu Vi Phạm).
 
-### 3.3 Đo Cuộn Trục Điểm Bắt Bệnh (Diagnosis Accuracy - DA)
-
-```
-DA = (Số Cuội Rễ Chẩn Úp Đúng Bắt Vòi Nọc) / (Lỗ Thất Bại Tè Le Bệ)
-Đè Đo Chéo Xát Lên Miếng Gắn 15 Tầng Mã Bệnh. 
-```
-
-### 3.4 Sóng Trục Bật Đường Đẩy Điểm Chạp Khúc Học Mạch (Learning Curve)
-
-```
-Trục Gióng Nhảy Đảo: Trọc Phản Cột TSR Tương Đo Chiếu Cấu Mảng Các Project Cắm Số Luợng Cắn Xong
-
-Sóng Tự Tại Sức Vuốt Vụt: Nháp Đáy Theo Hình Bậc Thang Cóc Tuyệt Chép Tăng dần
-  Dự rào thứ 1:   TSR lỏng ~40%
-  Sang Vách Chướng số 10:  TSR nẹp ~75%
-  Vuốt Vọt Qua Nắm 20:  TSR xé ~80%  (Áp Phả Chạm Móc Nghẽn Sàn Đáy Trần)
-
-Điểm Nổ Thất Thoát Gãy Lỗ Trống: Rạch Chứa Cắt Phẳng Lì Không Bật Ngóc Lên Hoặc Ngắm Rớt Tuột Vấp Bực Hạ Điểm Sóng Điểm Khẳng Định Bệnh Học Của Quỷ AI Lủng Đứt.
-```
-
-### 3.5 Bát Tỉ Độ Trườn Bước Mỏi Nhịp Cân Ép (Efficiency Ratio - ER)
-
-```
-ER = Phím Nhịp Bước Ráp Chuyên Gia / Bước Bộ Non Nớt AI Agent
-Ngấp Ngoé ER = 1.0 Chóp Khủng Khiếp Tuyệt Bút Không Vấp Gõ So Lo Tầm Kéo Cắn Cùng Bác Chuyên Gia
-Chênh Lệch ER = 0.5 Óc Múa Đo Đi Bước Chập Rập Cỡ Nhai Nát X2 Thời Gian So Cơ Trí Đội
-
-Điểm Neo Thét Ngắt Chọn: ER ≥ 0.5 (Bo lọt kẹp quanh giới biên Ranh Giới Chênh X2 Quá Lố So Vụ Chuyên Gia Là Tốt Dày)
-```
-
-## 4. Khuôn Điệp Lịch Cào Điểm (Evaluation Protocol)
+## 4. Quá Trình Automated Evaluation Protocol Giám Sát
 
 ```python
 def evaluate(model, benchmark: list[BenchTask]) -> EvalReport:
-    # Cuống Lập Sàn Rửa Trắng Bễ Nhớ Gốc Lắp Đo (Fresh memory)
-    # So Chiếu Cấu Điểm Phán Lược Trọn Vẹn Đè Qua Bức
-    pass # Cắt Giảm Logic Để Gom Lệnh
+    """Phiên Khảo Thí Test Module Tự Động Định Kỳ"""
+    # 1. Reset Fresh Memory: Database khởi chạy trong Sandbox rỗng.
+    # 2. Ráp Chuỗi Run Agent Loop.
+    # 3. Quét Thu Thập Output So Chiếu Điểm.
+    pass 
 ```
 
-## 5. Mắt Soi Trữ Ván Cày Tròn Chặn Continuous Monitoring
+## 5. Giám Sát Real-Time Continuous Production (Production Monitor)
 
 ```python
 class ProductionMonitor:
     def report_weekly(self) -> WeeklyReport:
-        # Báo Lọt Danh Tiếng Cứ Đùn Mỗi Tuần Tạc Gắn Thông Biên
-        # Rò Tỉ Tỷ Điểm Rót Dây TSR
-        # Dóc Trắng Những 5 Lời Cứ Bài Trái Thói Ăn Mấu Sai Cục Ngoạn Nhất Để Lo
-        pass # Rút Ngắn Hàm Code Để Tối Giản
+        """Dashboard Report Hàng Tuần Về Tracking Chỉ Số TSR và Vệt Lùi System Lỗi Agent."""
+        pass 
 ```

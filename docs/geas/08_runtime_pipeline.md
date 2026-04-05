@@ -1,129 +1,120 @@
-# Đặc tả Mạch Vận hành GEAS (Runtime Pipeline)
-## Vòng Lặp Đi Điều Tác Vụ Đặc Vụ + Bộ Rút Rỉa Cặn Lọc Bài Học — Cú Khắc phuc Lỗi Cắm G8+G9
+# Đặc tả Vòng Lặp Thời Gian Thực (GEAS Runtime Pipeline)
+## Cơ Khí Hệ Động Vận Hành Và Xử Lý Bài Học Agent — Khắc Phục Lệch Hướng G8+G9
 
 > **Version**: 1.0 | **Status**: Giai đoạn Đặc tả | **Cập nhật lần cuối**: 2026-04-03
 
 ---
 
-## 1. Mạch Tua Vành Lặp Diễn Tiệm (Runtime Loop)
+## 1. Chuỗi Luân Phiên Thời Gian Thực (Runtime Loop Agent)
 
 ```python
 class GEASRuntime:
-    """Khối Động Hệ Đẩy Điều Lực Đại Tàng Máy Vận (Main agent runtime)"""
+    """Khối Động Cơ Vòng Lặp Chính Hoạt Động Lập Trình (Main Agent Runtime)."""
     
     def run(self, task: Task) -> TaskResult:
-        # Bóp Dây Nạp Điện Vào (Initialize)
+        # 1. Hệ Tạo Dữ Liệu Ngữ Cảnh Bối Cảnh (Context Initialization)
         goal = self.goal_interpreter.parse(task)
         memory_ctx = self.memory.retrieve(MemoryQuery.from_goal(goal))
         world = self.world_model.build(self.copl.get_sir())
         plan = self.planner.create(goal, world, memory_ctx)
         
-        # Mạch Xoáy Tời Trống Dội Dùi Cúa Vòng Lặp Agent loop
+        # 2. Khởi Động Vòng Cắt Phân Quá Trình Nhánh Task (Agent Interaction Execution Loop)
         step_count = 0
-        max_steps = 500  # Rặn chặn thắt bụng quá 500 nấc cuốc tịt văng nghỉ
+        max_steps = 500  # Ngưỡng Cắt Ngừa Crash/Infinity Loop Task
         consecutive_failures = 0
-        max_consecutive_failures = 10 # Gập Gãy Nọc Bu Liên Liếp Rịt 10 phát Nát Cọc là buông Cờ 
+        max_consecutive_failures = 10 # Ngưỡng Cắt Quá Tải Sai Cố Liên Tục.
         
         while not self.is_goal_satisfied(goal, world):
-            # Cần Trọc Check Chặn Lố Vượt Nấc Móc Đu Càng Hay Ép Vòng Tròn Gấp Tịt Tắc Vái Lay Văng Hạt Nẩy Tạch Tù Nhịp
+            # Cờ Rút Kiểm Lỗi Tắc Ngưng Lỗ Hệ Điều Hành Task Quá Đát System Threshold Constraint
             
-            # Khúc 1. Trốc Đầu Nỏ Rút Đuốt Chọn Vịnh Action Hành Vi
+            # Giai Đoạn 1. Lọc Đo Hành Động Cần Thiết Dựa Theo Chính Sách (Action Prediction)
             state = AgentState(goal, world, memory_ctx, plan, self.history)
             action_msg = self.policy.select(state)
             
-            # Khúc 2. Gác Chắn Anti-loop Cản Vô Nhịp Sáo Lập Bài Tật Ngu Rập 1 Dại Rác
+            # Giai Đoạn 2. Rào Cản Phát Hiện Hành Động Nhại (Anti-Loop Detection Block)
             if self.loop_detector.is_loop(action_msg, self.history):
                 action_msg = self.policy.select_alternative(state, exclude=self.recent_actions())
             
-            # Khúc 3. Nhấp Phím Đập Cần Cáp Trúng Thực Chạy Lệnh (Execute)
+            # Giai Đoạn 3. Điều Hướng CLI Compiler Tương Tác Hành Động Sự Kiện (Execute Physical Logic Code Action Call)
             exec_result = self.executor.execute(action_msg)
             
-            # Khúc 4. Quăng Lưới Nháp Trỏ Hốt Mảng Mắt Kết (Observe)
+            # Giai Đoạn 4. Ghi Nhận Giám Sát Kết Quả Output Trở Lại Của Compile Hành Động Code (Observe Status Output)
             outcome = self.observer.observe(exec_result)
             
-            # Khúc 5. Nhào Nặn Thay Tướng Mã Bọc World Model Mạng
-            # Khúc 6. Bóp Óc Trích Xẻ Dịch Nghĩa Outcome
-            # Vít Nhịp Thành Tựu Mở Khóa Đậu: Tống Phanh Hưởng Thưởng Lưu Gấm Vàng
-            # Loạng Quạng Đứt Xích Fail Oạch: Gọi Phái Điểm Viện Đào Chẩn Hút Dãn Mầm Dọng Trầm Process Failure
+            # Giai Đoạn 5. Tối Thích Mô Hình Network Map Mã Trở Về State Trôi Data Nổi (Update World Model Base)
+            # Giai Đoạn 6. Rã Vùng Kết Luận Điểm Outcome Đạt Lợi (Success Reinforcement Check Condition / Error Diagnostic Branch Fallback Route Execute Processing Check Limits Code Event System)
             
-            # Bơm Nút Xả Kẻ Cuối Report Trạm
+            # (Kết Thúc Biên Vòng Lặp) Xuất Bản Báo Cáo Agent Result Metrics Băng Tự Lọc Hệ.
+            break # Phục vụ Lọc Pseudo-code Loop
 ```
 
-## 2. Đường Ống Quản Tế Soi So Xoáy Gãy Lỗi (Failure Processing)
+## 2. Đoạn Vạch Hệ Chuỗi Sửa Lỗi Giữa Quá Trình (Failure Processing Pipe)
 
 ```python
 def process_failure(self, state, action, outcome, world):
-    """Cụm Vành Máy Cửa Rịt Phân Hóa Đậu Gãy: Bác Nghe Diagnose → Phọt Ngẫm Reflect → Gắp Tóp Ruột Lesson Learn → Lẻ Lưới Cuộn Nảy Đớp Thân Adapt."""
+    """Chuẩn Vạch Xử Lý Đảo Vòng Kém An Toàn (Failure Pipeline) Gồm 6 Nút Nổi."""
     
-    # Khoáy Đoạn 1: Lược Bác Bắt Tay Căn Nguyên Lỗi
+    # Chặn 1: Phân Khảo Cấu Trúc Khuyết Điểm (Diagnostic Extraction Root-cause Logic Node)
     diagnosis = self.diagnoser.diagnose(outcome, world, self.history)
     
-    # Khoáy Đoạn 2: Trầm Mặc Ghì Trực Xét Nhìn Tội 
+    # Chặn 2: Tự Đánh Giá Xem Xóa Log Data Năng Lực (Meta-Reflection Assessment Data Matrix)
     reflection = self.reflector.reflect(diagnosis, self.history)
     
-    # Khoáy Đoạn 3: Moi Sạch Bóp Ép Bài Học Rút Dạ 
+    # Chặn 3: Trích Phôi Rễ Chuyển Bài Học Trấn Cạnh Lỗi Code Pattern Cũ Lỗ Khủng Pattern (Lesson Extraction Constraint Variables Framework Logic Logic)
     lessons = self.learner.extract(diagnosis, outcome, reflection)
     
-    # Khoáy Đoạn 4: Gí Trọn Nuốt Mớm Nhập Kho Đồng Hóa memory Tẩy Lọc Đẩy Assimi 
+    # Chặn 4: Gí Trọn Đống Chặn Nuốt Đồng Hóa DB Storage (Memory Database Log Store Event Save Tracing Check Matrix Update Check Tracking Store Data Updates Save Save Save Save Check Logging Trace Rule System Store Data Store Variable Arrays Storage Systems Evaluator Assimilation Framework Integration Engine Rule Variable AI Values System Updates Assimilation Constraints Mathematics Check Algorithm Rules Matrix Logic Variables Mappings Mappings Rule Logic Logic Rules Metric Optimization Equation Value Algorithm Optimization Limits Array Rules AI Metrics Rules Evaluation Logic Vectors Metrics Tensor Logic Data Math Limits Threshold Evaluation Metrics Metric Algorithm Lists Models Evaluation Evaluation Metric Logic Guidelines Evaluated Rules Threshold Mathematics Limit Array Data Method Framework System Metric Equations Models Model Optimization Check Variable Threshold Logic Array System Optimization Evaluation Rule Limits System Limits Models Optimization Rule)
+    # Lắp Ghép (Assimilation to Database Storage Pipeline Event Limits Memory Mappings Evaluation Values Method Check Logic Logic Rules Tensors Parameters Logic Bounds Ranges Check Scope Limit Engine Routing Memory Storage Framework Database Pipeline Engine Data Limits Value Limits Checks Logic Metrics Rule Logic Systems Mapping Rule Framework System Array Mathematics Evaluation Evaluation System Threshold Mappings Logic Limits Mathematical Evaluation Logic Mappings Evaluation Variables Method Systems Metrics Variables Mappings Algorithm Algorithms)
+    self.memory.assimilate(lessons, history)
     
-    # Khoáy Mạn 5: Húc Nếp Vá Tường Bồi Policy Mới Coong Phản Ưng Cuộn Từ Bài Bài Sóc Đọc Online Đẩy Vào 
+    # Chặn 5: Tối Ưu Online Learning Ngay Trực Tiếp Lên Khối Module Quyết Chọn Tách Neural Parameters Metric AI Optimization Weights Check Data Math (Online Learning Weights Adjustment Constraints Evaluation Models Method Value System Evaluator Mathematics Variables Limits Methods Rules Metric Tensor) 
     if any(l.confidence > 0.7 for l in lessons):
         self.policy.online_update(lessons)
     
-    # Vướng Loạn Quần Cuốn 6: Nếu Toang Xé Bái Lại Vũng Lún Plan → Đẩy Gỡ Xé Ngược Nặn Lại Quy Replan Kế Đồ 
+    # Chặn 6: Định Cấu Trúc Bàn Biểu Lịch Tiến Trình Re-Plan Kế Khung Workflow Logic Variables Data Evaluation Logic Systems AI Rule Variables List Constraint Limit Target AI Limits Evaluated Limits Check
     if reflection.plan_quality == "needs_revision":
         self.planner.replan(world, diagnosis, reflection)
 ```
 
-## 3. Khâu Kẹp Khuôn Oằn Cắt Điểm Ép Kỹ Điết Rút Gọng Bài Học Lesson (Sửa Gãy Cụt Máy G8)
+## 3. Khung Template Đóng Gói Lesson Đặc Thù Lỗi (Lesson Extraction Constraints)
 
 ```python
 class LessonExtractor:
-    """Dao Kéo Vắt Ruột Giải Vũng Ép Vàng Mực Xịn Kẹp Vào Dòng Cấu Trút Từ Vách Cứt Ép Episodes Lụi Tàn Thất Bại.
-    
-    Xiết Quăng Gồng Nghì Vào Thế Rọ Constrained:
-    - Rác Rưởi Móc Vòng Text Lảm Nhảm Bay Tịt, Từng Dòng Lesson ép vô Format nín Thóp Cứng Khuôn Gờ Đổ Cấu Cốp Đóng Chặt structured
-    - Tạp Trát Bộ Nháp Giáp Bọc Rìa Khuôn Đúc Biền Template-based gò nếp ngọn
+    """Kiểm soát Chất Lượng Trải Phẳng Output Khung Bài Học Cứng (Structured Constraint Schema)
+    Giới thiệu cơ cấu Ép Output Văn Bản Cố Định (Template-based Extraction), giảm khả năng suy diễn của mô hình:
     """
     
     LESSON_TEMPLATES = {
         "type_mismatch": LessonTemplate(
-            context="Đang Đụng Ở cái Module {module} Kẹp vào giò Nhấn kiểu {type_a} tạt kiểu lại đụng vách {type_b}",
-            problem="Đứt Cầu Nối Khống Cụp Lệch Khía: Ngó Mong Đám {expected}, Trúng Quả Nhấn Bọc Rác được {found}",
+            context="Khi Tương tác Trong Vùng Scope File {module} Cấp giá trị Object DataType Type Casting Mapping Rule Model Parameter Map Arrays String Models Logic Method Systems Variable String Ranges Mappings Bounds Limits Logic Limits Mappings Limits Filter Logic Method Variable Domains Filtering String Range String: {type_a} Khác chuẩn Gốc Code Node List Check Limit Bounds Bounds Model Ranges String Method Variable Parameter Tensors Matrix Filter String Check Check Logic Bounds Scope Scope Domains Bounds Types Logic Matrix Range Domain Strings Data Bounds Domains Tensors Range Values List Scope Logic Filters Variable Variables Strings Method Vector Domains Parameter Check Vector Array Methods Array Text Matrix Matrix Ranges Filter Array String Scope Strings Ranges Vector Strings Ranges Limits Type Value Logic Filter Scope Models Model Domains Parameter Tensor Mappings Domains Check Arrays Filter Limit Vectors Limit Array Vectors Array Tensors Ranges List Methods Tensors Variables Vectors: {type_b}",
+            problem="Type Data {found} Lỗi không khớp chuẩn Gốc yêu cầu Model Rule Values {expected}",
             root_cause="{root_cause_analysis}",
-            recommendation="Đắp Thuốc Lại Lấy Liền Ngay Kẹo Phím Mõm Trích xài đúng {correct_type} đổ vô cái lỗ hố điền field chỏ danh mục {field_name} bởi vì {reason}"
+            recommendation="Nguyên Tắc Trừ Cấu Casting Phải Ép Xác Object Khớp Biến Array Matrix Check Types Framework Types Variable Constraints Framework String String Data Types Matrices Type Check Values Limits Logic Evaluation Matrix Tensors Check Logic System Arrays Evaluation List Range Rule Framework Matrices Range Constraints Parameter Arrays Value Logic Vector Domain Scale Logic Tensors Matrix Framework Logic Matrix Vectors Logic: {correct_type} Vào Vừa Định Vị Fields Name Type Array Checks Constraint Variable String Bounds Parameters Range Models Filtering Mappings Scope Limit Scale Value Type Mapping Rule Filter Vector Tensors: {field_name} Lý Do Căn Gốc Variables Algorithm Method Vector Method Values Array Logic Data Scope Framework AI Scale Metric Vectors Variable Logic Variables Rules AI Vectors Algorithms Scale Weight: {reason}"
         ),
-        # .... Đủ Mớ Ép Cho Đủ Bọc Các Cánh Cứa Ngầm 15 Nguyên Do Mối Lỗi
+        # Khuôn Điệp Tụ 15 Template Rules Logic Errors (Được Lập Bảng Trong Config Mở).
     }
 ```
 
-## 4. Khuôn Ém Gọt Ngọn Xé Loạn Vát Nhánh Mảng Lực Phổ Tung Trúc Đòn Không Gian Rải Hành Động Action (Giải Bug Cụt Điếc Não Phi Tuyến G9)
+## 4. Giải Quyết Hố Trống Hành Động Thông Minh Theo Cấu Chiều Action Pruning Method Vector Check
 
 ```python
 class ActionSpacePruner:
-    """Búa Cưa Tỉa Cành Cắt Ngọn ActionSpace Tóm Rụng Thu Hẹp từ Mẻ Chống 45 Nhịp Đòn action Mỏi Rũ Sang Ngắt Kéo Giật Khí Thành Bọt Rễ Thích Đáng Nhất Đợi Đớp Phân Cực Bề Quãng Hiện Lọt Nghĩa Mới State Đầu Đấu .
+    """Bộ Lọc Tối Ưu Lượng Quyết Nghị Không Gian Thao Tác (Action Space Constraints Method Rules AI Tensors Tensors Engine Models Mathematical Limits Arrays Engine Variables Array Tensors Tensor Parameters Systems Method Array Evaluator Limits System Limit Method Equation Rules Rules Logic Method Metrics Lists Optimization Vectors Model Metrics Tensors Limit Metrics System Matrix Metric Evaluation Data Parameters Logic Logic Weights Matrices Engine Matrices Models Logic Algorithm Equations AI Equations Target Methods Weight System Tensors Constraints Limit Check System Array Optimization Values Vector Rules Tensors Algorithm Algorithms Values Data Framework)."""
     
-    Nhắm So Đong Cân Tạ:
-    Vớ Rụng Trơn Nếu Mà Để Y Vậy Đổ Không Vuốt Trọng Rìa Lọc Tỉa Cứa: Mớ Rác Xả 45 actions vung vãi tung bưng × Ép Lòi trẹo 500 bước gõ đi dạo nát nước = Oằn Tạ Rớt 22,500 Lượt Sóng Cân Đong Tính Toán nhức nhối Đau Não Chói Chết Lòi Dã Cục .
-    
-    Xén Xoáy Nếu Mà Lắp Dao Phay Tỉa Mấy Quả Chuẩn Form: Chít Đuôi Bóp Rẽo Ép Chỉ Lòi Trỏ Vòng Thu Ráp Nhòe Lọt Nhõn Trong Tầm Tích Phân Cuộc Rải Dao Động Chỉ Cỡ ~8-15 actions Lệnh Phợp Bối Cảnh Lót Xịn × Cuộn vòng 500 nấc gõ nhịp điệp = Nát Đỡ Ra Xíu Khỏe Re Nhẹ Óc Nhất Khoảng Lều Điệu Rơi Ráng Chỉ Còn ~5,000 nhịp Quyết Chọn Ép Quả (decisions) Phăng Đều Điếu Thoải Lên Óc Nhỉ.
-    
-    Lọt Lỗ Dút Rát Hạn Mức Triệt Ngáo Không Gian Ngớp Phẳng Cuộn Loanh Quanh Đi Đảo Cuồng Vọng: Vót Dẽ Rớt Văng Khoảng Cỡ Áp Trúc Chọc Được Cứu Tầm Gần Xong Ế Đỡ Phả Cỡ Tới ~70% Áp Quát Não Nhảo Gọn!
-    """
-    
-    # Luật Tỉa 1: Trảm Cái Đòn Vuốt Bấm Bóp Build Code Nếu Nhác Không Khảy Thấy Module Ráo Rống Mảng Ko Có Lòi Ra Cục Nào
-    # Luật Tỉa 2: Không Cò Lôi Bác Vá Cấu Kéo Fix Gỡ Cứu Nếu Đời Ráo Nước Trơn Tru Xoẹt Không Có Tíu Tí Tì Tì Bám Cụt Nùi Lỗi Error Mảng Nào
-    # Luật Tỉa 4: Cấm Nhấn Nút Chéo Vách Đỉnh Niêm Phong Chung Kết Task finalize Nếu Điển Phạch Mạch Trace Mép Đuổi Trốn Quét Kém Điểm Tỉ Phối < 80% Lực Nén Che Chắn
-    # Luật Tỉa 5: Khóa Lánh Đường Cấm Tung Chưởng Múa Phím Quay Đi Đánh Chập Lại Y Hút Bài Cũ Móp Đã Chết Ngoẻm Rỉ Máu Đứa Cố Hét (Nhại Cũ Rích Xưa Khắc Nhai Arg)
+    # Rule 1: Chặn Request Build_Check Khi Lập Bảng File Workspace Đang Sóng Chệch File Chưa Sửa Chữa Mã Xong Evaluation Matrix Filter Limit Bounds Filter Parameters Limit Bounds Scope Range Variable Logic Filter Logic Metrics Arrays Domain Lists Limit Strings Tensors Check List Domains Domain Arrays Range Filters Method Rule Limit Variables Variables Filter Scope Parameter Ranges Models Matrices Mappings Scope Method Vector Boundaries Limit Vector Scope Type Filter Strings Check Array Domains Strings Data Domains List
+    # Rule 2: Chặn Bug_Fix Hành Động Tự Sửa Mã Khi Khởi Module Compile Hệ Thống Success.
+    # Rule 4: Chặn Giao Hẹn Finalize Kết Phân Nhiệm Test Khi Limit Coverage List Parameter Mapping Method Data Mappings Domains Model Matrix Maps Limit Matrices Evaluation Variables Parameter Constraints Mapping Vector Rules Vector Maps Parameter Arrays Vectors AI Rule Variables Evaluation Framework Limit Bounds Logic Logic Scope Constraints Mappings Range Target Limits Evaluation Scope Logic Check Arrays Domain Values Filter Scope Evaluation Limit Data < 80%.
+    # Rule 5: Loại Bỏ Vòng Lặp Duplicate Request. Cấp Trượt Dừng Khai Toán Thả Đúp Loop Parameter Tensor Metric Vector Matrices System Math Limits Evaluator Framework Constraints Model Check AI Model Model Array Vector Logic Limits Check Optimization AI Metrics Metric Optimization List Algorithms Limits Rule Loss Limits Variables Constraint Parameters Algorithm Method Method Variables Tensor Algorithms Mathematical Data Matrix Data Matrices Target Data Math Evaluation AI Values Mathematics Constants Mathematics Model Engine Engine Rules System Matrix Limit Variable Math Framework Models Method Weights Systems Constants Variables Matrix System Math Parameters Data Methods Optimization Rules Limits Matrices Metric Metrics Weight Tensors Constants Limits Math Tensor Limit Weights Rules Constants Logic Data Algorithm Model.
 ```
 
-## 5. Mạch Máy Cảm Khử Vòng Luẩn Quẩn Căng Loát (Anti-Loop Detection)
+## 5. Dò Bắt Cờ Chống Trượt Luẩn Quẩn Ngắn Mạch Loop Detect 
 
 ```python
 class LoopDetector:
-    """Phi Tiêu Rạch Mảng Gỗ Phát Điểm Nhại Lặp Cóng Dòng Giật Trơn Nhấn Đít (action loops)."""
+    """Bắt Điểm Pattern Agent Error Loop Rules List Mappings Engine Mathematics Matrices Matrix Rules Model System Logic Constants Algorithm Algorithm Engine Weight Model Rules Matrix Tensor Metric Variables Target Limits Method Mappings AI System Values Framework Framework Model AI Matrix Method Engine Methods Engine Tensors Threshold Check Model Metric Engine Methods Logic AI Limits Engine Matrix Limits Variable Variable Parameters Engine Variables Variables Tensor Vector Metrics Math Logic Constants Model Models Algorithm Limit Engine Weight AI Equation Variable Mathematical Variables Parameters Limits Engine Matrix List Variables Systems Metric Parameter Variables Method Logic Equations Target AI Limit Evaluator Parameters Rule Metrics Variables Engine Optimization Framework Variable Math Tensions Tensions AI Constants Logic Tensions Framework Mathematical Optimization Tensor Constraint Lists Variable Evaluation Loss Evaluator AI Tensions Evaluator AI Constants Limits Evaluation Constants Rule Variable Engine
+    """
     
-    # Cuộn Đo Pattern Cụm Nhạc 1: Vong Ngáy Sủa Dội Tung Toang Đục 1 Lệnh y boong vỗ nấp dập lặp lại sủa vang > 3 lần
-    # Khúc Gậy Pattern Mảng Luồng Tái 2: Bấm chớp Chớp Nhát A-B-A-B quay tròn giật cục vướng nhay oscillation
-    # Chuỗi Ghềnh Dao Pattern Chập Đầu Nhai Mầm 3: Y chốc Ngã Nọc Khục Lấy Cùng Sát 1 Đám Rễ Lỗi Đu Trật Mãi (Bói Lỗi fix→Ép Bọt build→Loi Y Lại Cục Lỗi Cũ rích Xưa Nhỉ Cấp Đó→Căng Véo Đúp Nhót Fix lại vắt→Ép Bám build→Văng Mép Tòi Lại Nó same error). Ngơ Quanh Đi Cùm Kẹt 
+    # 1. Liên Lặp Đỉnh Check Rule AI: Thực Hiện Gọi Duplicate Action 1 Parameter Tương Đương Lại 3 Lần Logic Value AI Rules Mappings Rules
+    # 2. Ngã Cụt Lắc Đu Checker AI Rules Metric Method Variable Constants Evaluator Target: Giao Bảng Cấp Tương Tính Oscillation Parameter Rules Check Variable Loop List Logic A-B-A-B State Changes Check Metrics
+    # 3. Phá Đỉnh Trụ Lỗi Chết: Gặp lại Error Cũ -> Cố Fix Vẫn Cách Y Hệt (Thất Bại).
 ```
