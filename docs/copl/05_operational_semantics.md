@@ -9,9 +9,9 @@
 
 COPL sử dụng loại **ngữ nghĩa động bước nhỏ (small-step operational semantics)** — nhằm định nghĩa cụ thể mọi quy trình cắt giảm biểu thức diễn ra ở bước nhỏ nhất ra sao. Với mô hình xử lý hình thức này:
 - Chứng minh tính chuẩn xác về kiểu an toàn (type soundness) (giúp cho các tiến trình kiểm soát đánh giá kiểu không bị khựng cứng)
-- Định nghĩa các phương pháp thực thi đảm bảo Hợp đồng - contract (điều kiện kiện quyết pre/post conditions)
+- Định nghĩa các phương pháp thực thi đảm bảo Hợp đồng - contract (điều kiện tiên quyết/hậu quyết pre/post-conditions)
 - Định nghĩa kiểm soát hiệu ứng (effect tracking) khi đang kích hoạt ở trạng thái Runtime
-- Định nghĩa xác định vi phạm quy tắc Profile ngay ở lúc compile-time (biên dịch) thay vì đợi đến khi chạy Runtime lỗi mới lộ
+- Định nghĩa xác định vi phạm quy tắc Profile ngay lúc biên dịch (compile-time) thay vì đợi đến khi chạy Runtime sinh lỗi
 
 ## 2. Ký hiệu (Notation)
 
@@ -36,16 +36,16 @@ v ::= n                            (* Hằng số kiểu số nguyên âm/dươn
     | true | false                 (* Giá trị bool - boolean *)
     | c                            (* Số hạng Ký tự - char *)
     | s                            (* Dòng string *)
-    | Unit                         (* Cột unit không giá trị (Void) *)
+    | Unit                         (* Kiểu Unit (tương đương Void) *)
     | [v₁, ..., vₙ]              (* Biến kiểu mảng Array *)
-    | (v₁, ..., vₙ)              (* Định dạng nhóm dữ liệu tuple *)
+    | (v₁, ..., vₙ)              (* Định dạng nhóm dữ liệu Tuple *)
     | S { f₁: v₁, ..., fₙ: vₙ } (* Đối tượng thuộc dạng Struct *)
-    | E::V(v₁, ..., vₙ)          (* Cột giá trị thay đổi variant cho định dạng Enum *)
-    | Some(v)                      (* optional khi có value *)
+    | E::V(v₁, ..., vₙ)          (* Biến thể Enum (Enum variant) *)
+    | Some(v)                      (* Optional khi có giá trị *)
     | None                         (* optional khi trống rỗng *)
     | Ok(v)                        (* Trả về value của kết quả hợp lệ *)
     | Err(v)                       (* Trả về value biểu tình có lỗi của Hàm *)
-    | closure(env, params, body)   (* Cột giá trị Closure (bao trùm khối cục bộ) *)
+    | closure(env, params, body)   (* Closure (bao đóng biến cục bộ) *)
 ```
 
 ## 4. Các quy tắc Đánh giá Cốt lõi (Core Evaluation Rules)
@@ -128,7 +128,7 @@ v ::= n                            (* Hằng số kiểu số nguyên âm/dươn
     (* Các bước duyệt Thân Hàm *)
     ⟨body, σ_args⟩ → ⟨v_result, σ''⟩
     
-    (* Các bước duyệt Mệnh lệnh Post-contract (Logic Hợp đồng Đích trả về) *)
+    (* Các bước duyệt Mệnh lệnh Post-contract (Kiểm tra bảo đảm hậu quyết) *)
     σ_post = σ'' ∪ {result ↦ v_result}
     ⟨post_condition, σ_post⟩ → ⟨true, σ'''⟩
     ────────────────────────
@@ -180,7 +180,7 @@ v ::= n                            (* Hằng số kiểu số nguyên âm/dươn
 
 (E-MATCH)
     ⟨scrutinee, σ⟩ → ⟨v, σ'⟩
-    tìm vòng lặp pattern pᵢ nếu nó khớp với v
+    tìm pattern pᵢ đầu tiên khớp với v
     bindings = match_bindings(pᵢ, v)
     ⟨eᵢ, σ' ∪ bindings⟩ → ⟨v_result, σ''⟩
     ────────────────────────
@@ -366,19 +366,19 @@ v ::= n                            (* Hằng số kiểu số nguyên âm/dươn
 
 ```
 (E-SM-TRANSITION)
-    sm khởi tranh ở phân mục/hệ trạng thái S₁
-    Sự kiện/Event hiệu lện nhận tín hiệu thông báo E
-    Hàm cầu nối chuyển trang (transition) từ (S₁, E) → (S₂, action/logic gán mốc chức năng) đã xuất hiện trong bảng table
+    sm đang ở trạng thái gốc S₁
+    Bắt được sự kiện E
+    Bảng chuyển trạng thái (transition) chứa nối kết: (S₁, E) → (S₂, action)
     ⟨action(context), σ⟩ → ⟨_, σ'⟩
     ────────────────────────
-    sm đổi mode trạng thái của nó để lùi qua/nhảy sang trang hiển thị S₂, σ'
+    sm chuyển qua trạng thái mới S₂, σ'
 
 (E-SM-NO-TRANSITION)
-    sm khởi tranh ở khu vực trạng thái gốc S₁
-    Event cấp báo lỗi / logic E cất tiếng gọi  
-    Chưa/Không có tồn tại bảng (S₁, E) transition bắc cầu để nối đi xa
+    sm đang ở trạng thái gốc S₁
+    Bắt được sự kiện E
+    Không tồn tại nút chuyển đổi (S₁, E) nào trong bảng transition
     ────────────────────────
-    sm vẫn mắc kẹt ở phân mục cũ S₁, hệ thống bất di bất dịch đóng cửa không thực thi bất kỳ logic gán/hành động action nào thêm.
+    sm giữ nguyên trạng thái S₁, tiếp tục chặn các ngoại lệ.
 ```
 
 ## 8. Khẳng định Tính đúng đắn (Soundness)

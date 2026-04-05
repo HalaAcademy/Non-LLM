@@ -13,7 +13,7 @@ COPL định nghĩa rõ 4 mode giới hạn cho vấn đề Cấp phát (Allocat
 |---|---|---|---|
 | `static` | Chỉ lúc Build Compile-time | Không bao giờ | embedded, kernel |
 | `owned` | Tường minh, do lập trình viên ấn định pool/arena | Phá hủy Explicit gốc rễ | kernel, backend |
-| `managed` | Logic tự quản Runtime (GC, Cơ chế Dem/Refcount) | Giải phóng cực quang (Tự động hóa tuyệt đối) | backend, scripting |
+| `managed` | Tự động Runtime (GC, RefCount) | Tự động hoàn toàn (Automated) | backend, scripting |
 | `region` | Dựa vào Vùng quản lý logic con (Region-based) | Thoát ra / Mất con trỏ (Region Exit) | backend |
 
 ### 1.1 Chế độ Static (Cho Embedded / Kernel)
@@ -31,7 +31,7 @@ module mcal.buffer {
     tail: USize
   }
   
-  // COMPILE ERROR CODE (Lỗi rào chặn Compile): Hàm Vec là gọi Xin cấp phát Heap động Runtime → bị CẤM trong chế độ Static mode do thiếu RAM
+  // LỖI BIÊN DỊCH: Việc gọi Vec::new() yêu cầu cấp phát bộ nhớ động (Heap) tại runtime. Bị cấm tĩnh trong chế độ static.
   // let buffer = Vec::new();  // ❌ ERROR E401
   
   // Trạng thái Static global (Dữ liệu tĩnh để đưa vô block BSS)
@@ -56,16 +56,16 @@ module mcal.buffer {
 module services.logger {
   @platform { memory_mode: owned }
   
-  // Xin Cấp phát bộ nhớ cục bộ từ hồ chứa dạng cấp bậc pool do lập trình lệnh
+  // Xin cấp phát bộ nhớ từ pool do người dùng quản lý
   fn create_log_entry(pool: Pool, msg: String) -> Owned<LogEntry> {
     let entry = pool.alloc::<LogEntry>();  // lệnh gọi trực diện explicit allocation
     entry.message = msg;
     return entry;
   }
   
-  // Xin cấp thu hồi (Giải phóng giải phóng rác bằng lệnh code tay
+  // Thu hồi bộ nhớ rõ ràng (Explicit deallocation)
   fn discard_entry(entry: Owned<LogEntry>) {
-    entry.dealloc();  // xin explicit free — ngăn chốt bắt mã rác xài lại use-after-free (bộ biên dịch găm chốt xác minh được)
+    entry.dealloc();  // Dọn dẹp thủ công. Trình biên dịch theo dõi để tránh lỗi use-after-free
   }
 }
 ```
@@ -76,12 +76,12 @@ module services.logger {
 module app.web_handler {
   @platform { memory_mode: managed }
   
-  // Tự quản RunTime — Thu gom Dọn bộ nhớ rác GC thả phanh hoặc đếm liên kết tham chiếu (Refcount).
+  // Tự động thu gom rác (GC) hoặc đếm tham chiếu (Reference counting)
   fn handle_request(req: Request) -> Response {
-    let data = Vec::new();       // ← HOÀN TOÀN HỢP LỆ VỚI managed mode
-    data.push(parse(req.body));  // XIN Phân bổ Array Cấp phát động
+    let data = Vec::new();       // ← HOÀN TOÀN HỢP LỆ trong chế độ managed
+    data.push(parse(req.body));  // Cấp phát động được hỗ trợ
     return Response { body: data.to_json() };
-    // Mảng nhớ Data sẽ tự được Tẩy Hủy dọn Rác xóa bộ Nhớ khi ngắt kết nối vòng Scope ra khối Return (kích hoạt Dọn GC âm)
+    // Quá trình thu hồi sẽ tự diễn ra khi `data` nằm ngoài phạm vi biến (out of scope).
   }
 }
 ```
@@ -90,15 +90,15 @@ module app.web_handler {
 
 | Chế độ | Cấu trúc Logic Xử lý | Các Profile áp dụng |
 |---|---|---|
-| `none` | Duy nhất 1 luồng xử lý không tranh đoạt | portable, embedded (bare-metal trực máy) |
-| `cooperative` | Phân cấp Task/Đồng nhiệm rẽ nhóm Coroutines, loại bỏ luồng ngắt preemption | embedded (RTOS), backend |
-| `preemptive` | Tạo Threads qua HĐH (OS threads), Preemption mức độ mạnh full nhất | kernel, backend, scripting |
+| `none` | Luồng thực thi đơn (Single thread) | portable, embedded (bare-metal) |
+| `cooperative` | Tác vụ hợp tác (Coroutines), không bị ngắt ưu tiên | embedded (RTOS), backend |
+| `preemptive` | Tạo Threads qua OS (Đa luồng cướp quyền) | kernel, backend, scripting |
 
 ### 2.1 Mode None (Không Đồng thời / Luồng đơn) 
 
 ```
-Mọi hệ thống chạy tuần tự hoàn toàn. Không có hàm Interrupt handlers chuyên rẽ lối báo ngắt / Không chia tác vụ Tasks. 
-Hệ điều phối compiler đảm bảo: không bao giờ có Lỗi tranh đoạt ghi Data Race conditions. (Do logic máy vận chuyển bằng sự hiển nhiên).
+Mọi hệ thống chạy tuần tự hoàn toàn. Không có ngắt đa luồng hoặc chia việc tasks.
+Trình biên dịch bảo đảm: Không xảy ra hiện tượng Data Race by design.
 ```
 
 ### 2.2 Mode Cooperative (Nhiệm Vụ Hợp Tác Giao Quyền Ở HĐH Nhúng qua RTOS)
@@ -122,7 +122,7 @@ module app.task_manager {
 }
 ```
 
-### 2.3 Mode Preemptive (Chạy Tiến trình Đa luồng Giao quyền Mạnh Ngắt)
+### 2.3 Mode Preemptive (Chạy Đa luồng Ưu tiên ngắt)
 
 ```copl
 module backend.worker {
@@ -160,7 +160,7 @@ module backend.worker {
 
 (SHARED-ACCESS-PREEMPTIVE)
     concurrency_mode = preemptive
-    Dữ liệu dùng biên mảng Data chung bị tróc rút ở mức độ cấp tốc qua Multil-thread
+    Dữ liệu dùng chung được truy cập đồng thời từ nhiều luồng tác vụ.
     ─────────────────────────────
     BẮT BUỘC XÀI 1 TRONG CÁC KHUNG DƯỚI ĐÂY:
       - Block dùng khóa chặn Mutex { ... } 
@@ -169,7 +169,7 @@ module backend.worker {
     Compiler chốt khóa (Enforces): cấm toàn bộ tính trạng truy xuất cập nhật dùng trần (unprotected shared).
 ```
 
-### 3.2 Tác Động Giao Thức Điện Tín Volatile (Giành phần cứng Hardware Registers)
+### 3.2 Tương tác Volatile (Truy xuất Thanh ghi phần cứng - Registers)
 
 ```copl
 // Tệp nhúng Profile được cấy phép đặt mức gọi qua Hardware là Volatile tự mặc định bật lên
@@ -185,7 +185,7 @@ lower write_register(addr: U32, value: U32) @target c {
 }
 ```
 
-### 3.3 Hàng Rào Chắn Memory Barriers 
+### 3.3 Hàng Rào Cản Bộ Nhớ (Memory Barriers)
 
 ```copl
 // Các Hàm tích hợp sẵn tường minh xây Ranh Giói Barrier tương tác Tần Mạch Vật lý CPU.

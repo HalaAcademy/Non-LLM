@@ -13,7 +13,7 @@ COPL sử dụng **hệ thống kiểu hai chiều (bidirectional type system)**
 - **Kiểm tra kiểu nhận thức Profile (Profile-aware typing)**: các kiểu dữ liệu bị giới hạn bởi profile (ví dụ: không được dùng heap trong profile `embedded`)
 - **Kiểm tra kiểu nhận thức Hiệu ứng (Effect-aware typing)**: kiểu của hàm mang theo thông tin hiệu ứng (effects)
 
-## 2. Vũ trụ Kiểu dữ liệu (Type Universe)
+## 2. Hệ thống Không gian Kiểu dữ liệu (Type Universe)
 
 ### 2.1 Các Kiểu Nguyên thủy (Primitive Types)
 
@@ -41,7 +41,7 @@ COPL sử dụng **hệ thống kiểu hai chiều (bidirectional type system)**
     | fn(τ₁, ..., τₙ) -> τᵣ @E        (* kiểu hàm đi kèm với danh sách hiệu ứng E *)
 ```
 
-### 2.3 Khả năng Tương thích Kiểu
+### 2.3 Độ Tương thích Kiểu (Type Compatibility)
 
 ```
 Ép kiểu mở rộng kích thước số (ngầm định):
@@ -53,7 +53,7 @@ Không có chuyển đổi ngầm định giữa số có dấu ↔ không dấu
 Không có chuyển đổi ngầm định giữa số ↔ bool.
 ```
 
-## 3. Các Phán đoán Kiểu (Typing Judgments)
+## 3. Quy tắc Phán đoán Kiểu (Typing Judgments)
 
 ### Ký hiệu
 
@@ -113,7 +113,7 @@ P         Profile hiện tại
     Γ ⊢ c ⇒ Char
 ```
 
-#### Gộp kiểu (Subsumption - thay đổi chế độ)
+#### Bao hàm Kiểu (Subsumption - Quy tắc Nới lỏng)
 
 ```
 (SUB)
@@ -311,7 +311,7 @@ P         Profile hiện tại
     memory_budget: size kiểm tra kiểu hợp lệ
 ```
 
-## 5. Giới hạn Kiểu giới hạn bởi Profile
+## 5. Giới hạn Kiểu Tương thích Theo Cấu hình (Profile Restrictions)
 
 ```
 Các giới hạn profile cho các kiểu dữ liệu:
@@ -353,7 +353,7 @@ Các giới hạn profile cho các kiểu dữ liệu:
     COMPILE ERROR: "Kiểu dữ liệu τ không được phép dùng trong profile P"
 ```
 
-## 6. Lập trình Tổng quát (Generic Rules)
+## 6. Lập trình Tổng quát (Generics)
 
 ```
 (GENERIC-INST)
@@ -370,13 +370,13 @@ Các giới hạn profile cho các kiểu dữ liệu:
     Xác minh đúng ngay tại vị trí khởi tạo (instantiation site)
 ```
 
-## 7. Khẳng định tính Đúng đắn (Soundness Claim)
+## 7. Khẳng định Tính đúng đắn (Soundness Claim)
 
-> **Định lý Tính ĐÚNG ĐẮN của kiểu (Type Soundness)**:
-> Nếu `Γ ⊢ e ⇒ τ` và `e →* v` (e đánh giá/chuyển thành một giá trị v) thì giá trị `v : τ`.
+> **Định lý Tính đúng đắn của hệ kiểu (Type Soundness Theorem)**:
+> Nếu `Γ ⊢ e ⇒ τ` và `e →* v` (e đánh giá/chuyển thành một giá trị v) thì giá trị `v` phải thuộc cấp kiểu `τ` (`v : τ`).
 >
-> **Phương pháp chứng minh**: Tiến triển (Progress) + Mức độ bảo toàn (Preservation) (Wright & Felleisen, 1994).
-> - **Progress**: Một biểu thức kiểu hợp lệ luôn là một biến giá trị hoặc có thể đi tiếp trong bước nhỏ.
-> - **Preservation**: Các bước đánh giá đi tiếp bảo toàn kiểu dữ liệu.
+> **Phương pháp chứng minh**: Tiến triển (Progress) + Tính bảo toàn (Preservation) (Wright & Felleisen, 1994).
+> - **Tiến triển (Progress)**: Một khối biểu thức kiểu hợp lệ luôn là một biến giá trị hoặc có khả năng tiếp tục thực hiện ở các bước máy luân phiên.
+> - **Tính bảo toàn (Preservation)**: Các bước đánh giá đi tiếp bảo toàn thiết lập kiểu dữ liệu.
 >
-> Bằng chứng đầy đủ chính thức sẽ bị hoãn lại ở bước đánh giá chính quy của ngôn ngữ.
+> Chứng minh toán học đầy đủ sẽ được hoàn thiện ở bước đánh giá kiểm định chính thức.

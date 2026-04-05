@@ -1,33 +1,32 @@
-# Cơ chế Biên Dịch Tích Hợp Gia Số COPL (Incremental Compilation)
-## Khắc phục Cấn Vấn đề Scale#2: "Build Lại Từ Đầu Đống dự án code 30GB là Không Thế Chấp Nhận Xét Trên Yêu Cầu Tốc Độ"
+# Cơ chế Biên Dịch Tích hợp Gia số COPL (Incremental Compilation)
 
 > **Trạng thái**: Bản nháp | **Cập nhật lần cuối**: 2026-04-03
 
 ---
 
-## 1. Bài toán rào cản
+## 1. Vấn Đề Về Hiệu Suất Biên Dịch (Performance Problem)
 
 ```
-Lên giàn Build 1 dự án 30GB tính đường khép vòng bọc hết thủ công (Full compile):
-  Trượt quét 500,000 files × đi tuần qua 6 cữ lưới (6 passes) = Chờ mất ~30 phút đồng hồ
+Thời gian biên dịch toàn bộ (Full compile) một dự án 30GB:
+  Duyệt 500,000 files × 6 quá trình phân tích (passes) = Thời gian chờ xử lý ~30 phút.
 
-Người Lập Trình (Developer) nhấp sửa vặt 1 dòng 1 file → Trả giá bằng sự ngắt cứng phải ngồi chờ 30 phút?
-Tác Tử Trí Tuệ (AI agent) cập nhật vi chỉnh sửa 1 file → Cũng câm nín ôm hận chờ 30 phút rãnh cho mỗi ván bài lặp lại vòng iteration?
-Không bao giờ được phép chấp nhận! (Not acceptable).
+Lập trình viên (Developer) thay đổi 1 dòng code ở một file → Máy móc phải biên dịch và chờ 30 phút.
+AI Agent cập nhật mã nguồn phụ → Cần chờ quá trình compile lại 30 phút cho mỗi vòng lặp chức năng.
+Điều này là không thể đáp ứng được trong thực tế tác vụ vòng lặp phản hồi nhanh (Not acceptable).
 ```
 
-## 2. Giải pháp Mũi Nhọn: Luân Chuyển Biên dịch Kiểu Incremental Áp Dụng Rà Mạch Khớp Dependency
+## 2. Giải Pháp: Biên Dịch Chênh Lệch Dựa Trên Đồ Thị Phụ Thuộc (Dependency-Aware Incremental Compilation)
 
-### Tuyên Tôn Luật Cốt Yếu Của Thuật Toán:
+### Quy Tắc Chốt Biên Dịch Gia Số:
 
 ```
-Thấy Tín Hiệu Sửa Nhẹ 1 File đổi → Chỉ Kích hoạt lệnh dựng lại các đối tác bị hỏng (Only recompile):
-  1. Trực chỉ Chính file code bị thay đổi đó
-  2. Bất kỳ Mảng Tệp files nào ôm Tình trạng Trực Lập Ràng buộc (DIRECTLY depend) ăn trực diện vào điểm API Lớp Ngoài Public vừa bị phẫu thuật của cái mã file kia.
-  3. Từ Chối Build Lại Tuyệt đối (Skip) với muôn vàn các mảng files nằm chết yên phăng phắc vì chúng chỉ trích xuất hàm dựa lên các hàm public API Không Hề Đụng Tới (UNCHANGED).
+Khi phát hiện một tệp bị chỉnh sửa → Chỉ biên dịch lại nhóm bị ảnh hưởng (Only recompile):
+  1. File mã nguồn trực tiếp bị thay đổi.
+  2. Bất kỳ các tệp nào phụ thuộc trực tiếp (DIRECTLY depend) vào Public API của file vừa sửa đổi.
+  3. Bỏ qua (Skip) toàn bộ các tệp mã nguồn nếu sự thay đổi tại mã cơ sở không làm ảnh hưởng tính nhất quán của giao tiếp Public API.
 ```
 
-### 2.1 Cỗ Máy Cảm biến Bắt Trúng Sự Thay Đổi (Change Detection)
+### 2.1 Cảm Biến Cập Nhật Thay Đổi Phát Sinh (Change Detection)
 
 ```python
 class ChangeDetector:
@@ -41,7 +40,7 @@ class ChangeDetector:
             if cached_hash is None:
                 changes.add(file, ChangeType.NEW)
             elif file_hash != cached_hash:
-                # Trạng thái File đã suy suyển — Nhưng câu hỏi phải hỏi là: Sâu xa thì code nào bị biến dạng chìm?
+                # File đã thay đổi. Cần kiểm tra xem mã thay đổi có ảnh hưởng public API không.
                 old_public_api = cache.get_public_api(file)
                 new_public_api = self.extract_public_api(file)
                 
@@ -57,7 +56,7 @@ class ChangeDetector:
         return changes
 ```
 
-### 2.2 Thuật Soát Bảng Điểm Kích Hoạt Luồng Dựng Code (Recompilation Set Computation)
+### 2.2 Tính Toán Lịch Trình Biên Dịch Lại (Recompilation Set Computation)
 
 ```python
 class IncrementalScheduler:
@@ -65,34 +64,34 @@ class IncrementalScheduler:
         to_recompile = set()
         
         for file, change_type in changes.items():
-            # Mặc định ép chết cứng một lệnh: luôn đập lại lệnh build cho file dính dấu tay cộm hóa
+            # Luôn biên dịch lại file trực tiếp bị thay đổi
             to_recompile.add(file)
             
             if change_type == ChangeType.BODY_ONLY:
-                # Phát hiện rà Trúng cờ: File chỉ bị đục sửa nội hàm giấu kín (internal change) → Hệ Thống Rễ Kênh Ăn Bám Ở Ngoài (dependents) Mừng Rỡ Yên Ấn Và Miễn Recompile
+                # Thay đổi logic nội bộ (internal change) → Tệp phụ thuộc (dependents) không cần build lại
                 pass
             
             elif change_type in (ChangeType.API_CHANGED, ChangeType.NEW, ChangeType.DELETED):
-                # Phát giác Chấn Động Làm Nhàu Vỏ Bọc Mặt Tiền (Public API) bị vỡ → Tung kèn rốc đập bẹp & Build lại tập trung Toàn Bộ khối tệp mã Dependent Ăn Ký Sinh Trực Trực Hệ
+                # Public API bị ảnh hưởng → Cần biên dịch toàn bộ các file Dependent trực tiếp
                 dependents = dep_graph.get_direct_dependents(file)
                 to_recompile.update(dependents)
                 
-                # Check Kiểm tra tiếp chớp lốc Vòng Domino có gãy rễ sâu xuống nữa không: Thấy Code Ăn Ký Sinh sau đi Build Lại Cấu Kiến Sang Mã Mới Bị Chạm nến Mất Form Dễ Thương Thì Ép Gọi Gọi Lây Sóng Thần Nữa...
+                # Kiểm tra hệ quả dây chuyền: Nếu tệp phụ thuộc biên dịch xong thay đổi tiếp Public API, thì đánh dấu tiếp nhánh ảnh hưởng
                 for dep in dependents:
                     old_api = self.cache.get_public_api(dep)
                     new_api = self.recompile_and_get_api(dep)
                     if old_api != new_api:
-                        # Thảm họa Dây Chuyền Bùng Nổ Cuốn Lây Lan Xuống Toàn Quân Đoàn Code Dependents (Thế hệ Cháu Chắt) 
+                        # Sự đổ vỡ giao tiếp lây lan xuống hệ thống liên quan (Cascading failures)
                         to_recompile.update(dep_graph.get_direct_dependents(dep))
         
         return to_recompile
 ```
 
-### 2.3 Phân Định "Public API" (Vỏ Mở Ngoài Củ) là Tức Chỉ những thành tố nào?
+### 2.3 Tiêu Chí Xác Định Public API
 
 ```python
 class PublicAPI:
-    """Phiên hàm Hash băm cấu trúc mã giao thức Lưới public cho giao diện module — Nhỡ đâu vỏ này bị gãy, Đống phụ thuộc ăn nhờ ở lại đành trôi chu kỳ nộp lệnh compile build tốn phí."""
+    """Đối tượng băm (Hashing) cấu trúc mã giao diện module — Nhằm định tuyến cache hiệu quả"""
     
     def extract(self, module: ASTModule) -> APIHash:
         api_elements = []
@@ -116,13 +115,13 @@ class PublicAPI:
         return hash(tuple(sorted(api_elements)))
 ```
 
-## 3. Khay Bộ Nhớ Dữ Liệu Cache Trữ Điểm (Compile Cache)
+## 3. Bộ Nhớ Tạm Biên Dịch (Compile Cache)
 
 ```python
 class CompileCache:
-    """Cụm CSDL Giữ Bản Mẫu Cache dai dẳng lâu dài cho các vết Build trước đó."""
+    """Hệ quản trị CSDL bộ nhớ Cache lưu trữ dữ liệu từ các chu kỳ phiên build."""
     
-    CACHE_DIR = ".copl_cache/"  # Lưu thẳng lên project root
+    CACHE_DIR = ".copl_cache/"  # Lữu trữ tại thư mục root của dự án
     
     def __init__(self, project_dir: str):
         self.db = sqlite3.connect(f"{project_dir}/.copl_cache/cache.db")
@@ -131,8 +130,8 @@ class CompileCache:
                 file_path TEXT PRIMARY KEY,
                 file_hash TEXT NOT NULL,
                 public_api_hash TEXT NOT NULL,
-                sir_json TEXT NOT NULL,          -- Trữ bản đóng băng kết khối chuẩn của SIR rành rẽ của khối module
-                tir_json TEXT,                    -- Cất trữ luôn TIR (với điều kiện nó chót đã được ép khuôn build)
+                sir_json TEXT NOT NULL,          -- Lưu bản Semantic IR JSON của module
+                tir_json TEXT,                    -- Lưu bản Target IR JSON (nếu module tương đương đã được dịch)
                 diagnostics_json TEXT,
                 compile_time_ms INTEGER,
                 last_compiled REAL
@@ -140,7 +139,7 @@ class CompileCache:
         """)
     
     def is_valid(self, file: str) -> bool:
-        """Đọ So thông tin để duyệt Xem Bản Cache còn tính tinh gọn hiệu lực (valid) lừa đảo không."""
+        """Kiểm tra hiệu lực của bộ cache dựa trên hàm hashing tệp mã nguồn."""
         row = self.db.execute(
             "SELECT file_hash FROM module_cache WHERE file_path = ?", 
             (file,)
@@ -150,7 +149,7 @@ class CompileCache:
         return row[0] == hash_file(file)
     
     def get_cached_sir(self, file: str) -> Optional[SIRModule]:
-        """Câu Gọi Dữ Kiện SIR lấy từ kho xài thẳng mà miễn phí thủ tục Đập Bật Load Compile recompiling."""
+        """Tái sử dụng trích xuất báo cáo SIR trực tiếp nếu luồng cache hợp lệ (valid)."""
         if self.is_valid(file):
             row = self.db.execute(
                 "SELECT sir_json FROM module_cache WHERE file_path = ?", (file,)
@@ -159,43 +158,43 @@ class CompileCache:
         return None
 ```
 
-## 4. Đo Mô Hình Ước Đoán Hiệu Năng Vận Hành Tính Theo Mốc Giây Tíc Tắc (Performance Model)
+## 4. Mô Hình Định Lượng Hiệu Năng Thời Gian (Performance Estimation Model)
 
 ```
-Trường Lệnh đập Full compile mới chát:     500,000 files × 0.5ms = 250s (Cả mớ bùng mất ~4 min)
-Sửa 1 file đơn câm:    1 file + Kéo thêm chừng ~20 mạng Dependents theo quy luật = 21 đội × 0.5ms = 10.5ms tút lẹ
-Sửa giáp lá cà tay bo thay một lèo 10 files:  10 + Sóng xô đẩy kéo đổ ~50 domino cascade = 60 chóp × 0.5ms = 30ms loáng cái xong.
-Sửa Đổi Lộ Thiết Kế Gãy Nhánh 1 API Gốc Rễ Đáy Chuỗi:     1 file thay đổi + Gọi lệnh Đập Mới Lôi Xuống Rễ Nhánh ~100 mạng Dependents con + Gây sấm dậy chuyền cho ~200 nhánh cháu cascade = Tổng gom nén 300 con mảng file × 0.5ms = 150ms 
+Biên dịch toàn bộ mã dự án (Full compile):          500,000 files × 0.5ms = 250s (~4.1 min)
+Biên dịch 1 luồng tệp nội bộ:                       1 file + Tái dịch khoảng ~20 file Dependents = 21 files × 0.5ms = ~10.5ms
+Sửa một cấu trúc hàm ở nhiều luồng độc lập:         10 files + ~50 tập file phụ thuộc = 60 files × 0.5ms = ~30ms
+Sửa phân mảnh gốc của API Core:                     1 file + Buộc load build ~100 tập Dependents cấp 1 + Lây lan ~200 nhánh phụ thuộc = Tái nạp 300 files × 0.5ms = ~150ms 
 
-→ Kết Quả Biên Dịch Cộng dồn bằng Gia số (Incremental compile): <1s siêu nhẹ siêu nhanh Tối Thư Giãn Dành Cho Hàng trăm các nhịp Cập Code Thay Đổi Cọc (typical changes) ✅
-→ Trận đánh Đập Đi Phá Chén Bê Tông Làm Build Rebuild cồng kềnh Cực Mệnh (Full rebuild): chỉ diễn ra ở LẦN KHỞI CHÁT CĂM MŨI CODE BUILD ĐẦU TIÊN của chu kỳ HOẶC sau 1 Quả địa chấn đập phá Kiến trúc cấu trúc đại công trường mà thôi.
+→ Kết Quả Biên Dịch Gia số (Incremental compile): Thời gian < 1s cho hàng trăm tập tính chất luồng code thông thường cập nhật (typical changes) ✅
+→ Hoạt động Build Full system diễn ra vào lúc: Khởi tạo dữ liệu lần Compile đầu tiên HOẶC khi quy hoạch lại gốc thiết kế kỹ thuật kiến trúc hạ tầng quá mạnh.
 ```
 
-## 5. Phương Chế Trực Canh Lỗi Dòng Nóng (Watch Mode)
+## 5. Phương Chức Giám Sát Cập Nhật Theo Thời Gian Thực (Watch Mode)
 
 ```python
 class WatchCompiler:
-    """Máy Quay Chụp Quét Quét Luôn Rình Nhìn File System Vòng Tròn Theo Cấu Khối Dịch Incremental Watcher vòng Cục bộ Mắt Điểm."""
+    """Chức năng Theo dõi Tệp (FileSystem Watcher) kết hợp quy trình Dịch Incremental Mode."""
     
     def watch(self, project_dir: str, target: str):
         observer = FileSystemObserver(project_dir, pattern="*.copl")
         
-        # Mở điểm phát đạn Khai hỏa Sơ Khai Initial full compile
+        # Phiên kiểm tra thiết lập Full Compile ở quá trình Start
         self.full_compile(project_dir, target)
         
-        # Ngáp Mắt Mổ Rình Chỉnh Code
+        # Bắt đầu nghe và dò dữ kiện chỉnh sửa System file
         for event in observer.events():
             changes = self.change_detector.from_event(event)
             recompile_set = self.scheduler.compute_recompile_set(changes)
             
-            print(f"Trạng Thái Cọ Bật Thay Mới Xong: {event.file} → Xốc nách đập build ép khởi tấu biên dịch {len(recompile_set)} cục module")
+            print(f"Bắt sự thay đổi (Change Detected): {event.file} → Tiến hành Build lại {len(recompile_set)} module liên quan")
             
             for module_file in self.topological_sort(recompile_set):
                 result = self.compile_single(module_file)
                 self.cache.update(module_file, result)
                 
                 if result.errors:
-                    print(f"  ❌ Hổ thẹn Đen Ngòm Buôn Mảng Lỗi: {module_file}: {len(result.errors)} Lỗi Bấm Nút Buộc câm")
+                    print(f"  ❌ Lỗi Biên dịch (Compilation Failed): {module_file}: {len(result.errors)} Lỗi")
                 else:
-                    print(f"  ✅ Rót Chén Thành Công Xanh Mướt Nhẹ Mượt: {module_file}")
+                    print(f"  ✅ Thành công (Compiled Successfully): {module_file}")
 ```

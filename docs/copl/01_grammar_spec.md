@@ -1,8 +1,8 @@
 # Đặc tả Ngữ pháp Hình thức COPL
 ## Ngữ pháp EBNF v1.0 — Khắc phục C1: "Không có ngữ pháp hình thức"
 
-> **Trạng thái**: Bản nháp | **Cập nhật lần cuối**: 2026-04-03
-> **Loại Parser**: LL(1) Giảm dần đệ quy (Recursive Descent) — không yêu cầu quay lui (backtracking)
+> **Trạng thái**: Bản nháp | **Cập nhật lần cuối**: 2026-04-05
+> **Loại Parser**: Phân tích cú pháp đệ quy xuống LL(1) (Recursive Descent) — không yêu cầu quay lui (backtracking)
 
 ---
 
@@ -29,7 +29,7 @@ line_comment   ::= '//' {any_char - '\n'} '\n'
 block_comment  ::= '/*' {any_char} '*/'
 ```
 
-### 2.2 Danh xưng (Identifiers) & Từ khóa (Keywords)
+### 2.2 Định danh (Identifiers) & Từ khóa (Keywords)
 
 ```ebnf
 IDENT          ::= (LETTER | '_') {LETTER | DIGIT | '_'}
@@ -47,7 +47,7 @@ KEYWORD ::= 'module' | 'fn' | 'struct' | 'enum' | 'trait' | 'impl'
           | 'lower' | 'intrinsic'
 ```
 
-### 2.3 Literal (Giá trị hằng)
+### 2.3 Hằng số (Literals)
 
 ```ebnf
 INTEGER_LIT    ::= DECIMAL_LIT | HEX_LIT | BINARY_LIT | OCTAL_LIT
@@ -192,7 +192,7 @@ use_decl          ::= 'use' QUALIFIED_NAME ['as' IDENT]
 use_list          ::= IDENT {',' IDENT}
 ```
 
-> **Ngữ nghĩa Wildcard**: `use mcal.can.*` đưa tất cả symbol `pub` của module `mcal.can` vào scope hiện tại. Nếu có xung đột tên → COMPILE ERROR E301 (Ambiguous import), không tự resolve.
+> **Ngữ nghĩa Wildcard**: `use mcal.can.*` truyền tất cả các khối ký hiệu (symbol) có đánh dấu `pub` của module `mcal.can` vào phạm vi hoạt động hiện tại (scope). Nếu xảy ra xung đột định danh → trình biên dịch ném ra Lỗi COMPILE ERROR E301 (Ambiguous import).
 
 ---
 
@@ -265,12 +265,12 @@ type_expr_list    ::= type_expr {',' type_expr}
 type_alias_decl   ::= 'type' IDENT [generic_params] '=' type_expr
 ```
 
-> **Ràng buộc con trỏ (Pointer Restriction)**: `pointer_type` bị compiler từ chối trong code COPL thông thường. Chỉ hợp lệ trong:
-> - body của `lower_decl`
-> - fields của `lower_struct_decl`
-> - kiểu của `lower_const_decl`
+> **Ràng buộc con trỏ (Pointer Restriction)**: Định dạng `pointer_type` sẽ mặc định bị từ chối trong luồng chương trình COPL thông thường. Chỉ hợp lệ trong:
+> - Thuộc tính triển khai hàm của `lower_decl`
+> - Các trường biến của `lower_struct_decl`
+> - Định kiểu của `lower_const_decl`
 >
-> Vi phạm → **COMPILE ERROR E501** (Pointer outside lower context).
+> Vi phạm → **Lỗi COMPILE ERROR E501** (Pointer outside lower context).
 
 ---
 
@@ -359,11 +359,11 @@ match_arm      ::= pattern '=>' (expr | block) [',']
 lvalue         ::= IDENT | lvalue '.' IDENT | lvalue '[' expr ']'
 ```
 
-> **Ghi chú LL(k=2) cho `if` / `while`**: Parser phân biệt `if_stmt` vs `if_let_stmt` bằng peak token thứ 2:
-> - Token 2 = `let` → `if_let_stmt`
-> - Token 2 = expr → `if_stmt`
+> **Ghi chú xử lý LL(k=2) luồng luân chuyển logic cho `if` / `while`**: Trình phân tích (Parser) phân tách được logic của `if_stmt` so với `if_let_stmt` là dựa vào cấu trúc đọc chặn Token kế theo (lookahead token thứ 2):
+> - Token 2 = `let` → triển khai cơ chế `if_let_stmt`
+> - Token 2 = expr → triển khai cơ chế `if_stmt`
 >
-> Tương tự cho `while`. Recursive descent parser xử lý dễ dàng, không phá vỡ tính LL.
+> Tương tự đối với `while`. Mô hình LL(1) giải quyết bài toán biên dịch rất rạch ròi mà không phá huỷ quy tắc gốc.
 
 ---
 
@@ -519,7 +519,7 @@ event_expr         ::= QUALIFIED_NAME {'+' QUALIFIED_NAME}
 
 ---
 
-## 11. Ngữ pháp Lowering
+## 11. Cú pháp Phân tầng Thấp (Lowering)
 
 ```ebnf
 lower_decl        ::= 'lower' IDENT '(' [param_list] ')' ['->' type_expr]
@@ -548,7 +548,7 @@ const_decl        ::= 'const' IDENT ':' type_expr '=' expr ';'
 
 ---
 
-## 12. Bằng chứng Tuân thủ LL(1)
+## 12. Xác minh Tuân thủ cấu trúc LL(1)
 
 ### Phân tích FIRST Set (tất cả production)
 

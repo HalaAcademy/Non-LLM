@@ -7,7 +7,7 @@
 
 ## 1. Tổng quan về Lowering
 
-Lowering = cơ chế để thể hiện (express) các khối logic **vận hành chuyên biệt thao tác cấu hình theo phần cứng (target-specific operations)** — những thứ vốn KHÔNG THỂ biểu diễn nổi trên nền tảng lập trình logic trung tính của COPL. Mục đích sử dụng lớn nhất: truy xuất tương tác giao thức phần cứng qua thanh ghi (hardware register access) trên các hệ thống nhúng (embedded systems).
+Lowering = cơ chế để thể hiện (express) các khối logic **vận hành chuyên biệt cho từng nền tảng phần cứng (target-specific operations)** — những thao tác KHÔNG THỂ biểu diễn bằng ngôn ngữ trung lập của COPL. Mục đích chính sử dụng: Truy xuất trực tiếp đến thanh ghi phần cứng (hardware register access) trên các hệ nhúng (embedded systems).
 
 ```mermaid
 flowchart TD
@@ -26,11 +26,11 @@ lower <function_name>(<params>) [-> <return_type>] @target <target> {
 
 ### 2.1 Quy tắc
 
-1. Khối lower **chỉ được phép xài** tại các modules thuộc nhóm `profile: embedded` hoặc `profile: kernel`
-2. Khối lower **bắt buộc** phải khai báo tường minh gắn mác `@target` — chúng hoàn toàn KHÔNG CÓ TÍNH NĂNG XÀI ĐA NỀN (NOT portable)
-3. Các module có chứa khối lower thì tự động phát sinh ép nhận **effect [register]**
-4. Các khối lệnh trong lower là một **khối hộp mờ (opaque)** vô hình đối với Type Checker (compiler chỉ tin signature)
-5. Tất cả hàm liên kết gọi đến khối code lower đều buộc sẽ mắc tính lây nhiễm qua truyền thừa kế nhận biến `[register]`
+1. Khối lower **chỉ được phép định nghĩa** tại các module thuộc `profile: embedded` hoặc `profile: kernel`.
+2. Khối lower **bắt buộc** phải khai báo tường minh từ khóa `@target` — chúng hoàn toàn **KHÔNG CÓ TÍNH DI ĐỘNG (NOT portable)**.
+3. Module chứa khối lower sẽ tự động được gán hiệu ứng `[register]`.
+4. Các lệnh trong khối lower là **hộp đen (opaque)** đối với Type Checker (trình biên dịch chỉ kiểm tra chữ ký hàm).
+5. Bất kỳ hàm nào gọi đến khối lower đều kế thừa hiệu ứng tác động `[register]`.
 
 ### 2.2 Typing Rules Hình thức (Formal Typing Rules) — **[MỚI]**
 
@@ -78,22 +78,22 @@ lower <function_name>(<params>) [-> <return_type>] @target <target> {
 ### 3.1 Các Khối Nền tảng (Primitives) Truy xuất Thanh ghi 
 
 ```copl
-// Tương tác đọc điện không thể dự đoán (Volatile read)
+// Đọc Volatile (Volatile read)
 lower volatile_read_32(addr: U32) -> U32 @target c {
     return *(volatile uint32_t*)(addr);
 }
 
-// Cấp quyền Ghi điện lên vùng biến đổi liên tục (Volatile write)
+// Ghi Volatile (Volatile write)
 lower volatile_write_32(addr: U32, value: U32) @target c {
     *(volatile uint32_t*)(addr) = value;
 }
 
-// Đọc - biến đổi - lưu (Cài cờ set bit)
+// Thiết lập Bit an toàn (Set bits)
 lower set_bits(addr: U32, mask: U32) @target c {
     *(volatile uint32_t*)(addr) |= mask;
 }
 
-// Đọc - biến đổi - lưu (Xóa cờ dọn mảng bit)
+// Xóa Bit an toàn (Clear bits)
 lower clear_bits(addr: U32, mask: U32) @target c {
     *(volatile uint32_t*)(addr) &= ~(mask);
 }
@@ -112,7 +112,7 @@ lower_struct CAN_TypeDef @target c {
     IER: volatile U32 @offset 0x14,
     ESR: volatile U32 @offset 0x18,
     BTR: volatile U32 @offset 0x1C,
-    // ... hộp Mailbox xử lý thanh ghi liên lạc
+    // ... các thanh ghi Mailbox giao tiếp
 }
 
 // Con trỏ Base trỏ địa chỉ Gốc
@@ -120,7 +120,7 @@ lower_const CAN1: *CAN_TypeDef @target c = 0x40006400;
 lower_const CAN2: *CAN_TypeDef @target c = 0x40006800;
 ```
 
-### 3.3 Mã Code C được Biên dịch Tự động sinh ra (Generated)
+### 3.3 Mã Code C được Auto-generate (Sinh tự động)
 
 ```copl
 // COPL source:
@@ -129,7 +129,7 @@ lower rcc_enable_can1() @target c {
 }
 ```
 
-Phần mã C mà Compiler kết xuất Output:
+Mã lệnh C trình biên dịch tạo ra:
 ```c
 /* Tự động biên dịch sinh ra bởi COPL compiler. Tuyệt đối không thay thế dữ liệu bằng tay. */
 static inline void rcc_enable_can1(void) {
@@ -137,7 +137,7 @@ static inline void rcc_enable_can1(void) {
 }
 ```
 
-### 3.4 Mã Assembly nhúng Inline (Đường thoát Cứu trợ)
+### 3.4 Lệnh Assembly Inline (Tương tác Mức Hardware thấp nhất)
 
 ```copl
 lower disable_interrupts() @target c {
@@ -155,7 +155,7 @@ lower get_primask() -> U32 @target c {
 }
 ```
 
-## 4. Quá trình Quy đổi Hệ SIR → hệ TIR (Target IR)
+## 4. Quá trình Biên dịch từ SIR → TIR (Target IR)
 
 ### 4.1 Cấu trúc của TIR
 
@@ -193,18 +193,18 @@ TIRFunctionDef:
 | `I64` | `int64_t` | |
 | `F32` | `float` | |
 | `F64` | `double` | |
-| `[T; N]` | `T[N]` | Mảng độ lớn cố định fixed array |
-| `T?` | Khối struct lồng gắn cờ flag trạng thái | `struct { bool has_value; T value; }` |
+| `[T; N]` | `T[N]` | Mảng có kích thước cố định (Fixed-size array) |
+| `T?` | Khối Struct kèm cờ trạng thái xử lý null | `struct { bool has_value; T value; }` |
 | `Result<T,E>` | Tagged union | `struct { bool is_ok; union { T ok; E err; }; }` |
 | `Unit` | `void` | |
 | struct S | `typedef struct` | |
 | enum E (không gắn biến field) | `typedef enum` | |
 | enum E (có mang biến fields nội hàm) | tagged union | |
 
-### 4.3 Những mẫu quy ước Lowering cho Enum
+### 4.3 Quy tắc Xử lý Lowering bằng C++ / C với Enum
 
 ```copl
-// Biến thể kiểu Enum không ôm kiểu giá trị sẽ biến hóa → qua khối C enum
+// Biến thể kiểu Enum không có payload được biểu diễn thành kiểu định nghĩa cơ bản enum C/C++
 enum CanStatus { Ok, Busy, Error, Timeout }
 ```
 ```c
@@ -218,7 +218,7 @@ typedef enum {
 ```
 
 ```copl
-// Biến thể kiểu Enum có biến khai sinh bên trong → chuyển dạng union tag (tagged union)
+// Biến thể kiểu Enum mang chứa payload biến thể → chuyển định dạng tagged union C/C++
 enum Result<T, E> {
     Ok(T),
     Err(E)
@@ -235,7 +235,7 @@ typedef struct {
 } Result_T_E;
 ```
 
-### 4.4 Quy chế Lower cho State Machine 
+### 4.4 Quy chế Lower cho State Machine (Máy trạng thái)
 
 ```copl
 state_machine VcuStateMachine {
@@ -270,7 +270,7 @@ VcuState vcu_process_event(VcuState current, VcuEvent event, VcuContext* ctx) {
             return vcu_transitions[i].to;
         }
     }
-    return current;  // giữ nguyên mốc hiện tại nếu code không thấy transition hợp lệ
+    return current;  // giữ nguyên trạng thái cũ nếu hệ thống không khớp với biểu đồ transition
 }
 ```
 
@@ -306,7 +306,7 @@ int32_t divide(int32_t a, int32_t b) {
 
 ```copl
 module mcal.gpio {
-    // Chỉ là 1 function, lại mang khối hạ biến chuyên biệt phục vụ từng đích thiết bị target
+    // Định dạng cấu trúc cho phép khởi tạo implementation chạy biên dịch độc lập ứng với Target khác nhau
     lower set_pin_high(port: U8, pin: U8) @target c {
         GPIO_PORT[port]->BSRR = (1 << pin);
     }
@@ -319,7 +319,7 @@ module mcal.gpio {
 }
 ```
 
-### 5.2 Khai mở Tiến trình Lựa chọn Chọn Khối Build Target 
+### 5.2 Khai báo Tùy chọn Tiến trình Biên dịch Kiến trúc máy Mục tiêu
 
 ```bash
 copm build --target c        # build ra .c files
@@ -327,4 +327,4 @@ copm build --target rust     # build code Rust .rs files
 copm build --target go       # build thư mục cho code .go 
 ```
 
-Trình biên dịch chỉ pick (lựa) đúng cái block lệnh `@target` phù hợp với yêu cầu Compile mà thôi. Tái tạo ra những cái bị trống block missing hạ tầng lower → COMPILE ERROR.
+Trình biên dịch chỉ dùng khối `@target` được lệnh từ thông số dòng lệnh CLI. Bất kỳ function logic nào thiếu cài đặt block lower cho Target hiện Build sẽ gây lỗi COMPILE ERROR.

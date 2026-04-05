@@ -1,56 +1,57 @@
 # Kiến trúc Trình Biên Dịch (Compiler Architecture) của COPL
-## Đường ống dẫn Pipeline Xử lý Biên Dịch Hỗ trợ Đa Nhóm Công cụ (Multi-Target) — Khắc phục C10: "Lỗ hổng Ngữ Nghĩa giữa Đa Cấu Hình Cốt Build"
 
-> **Trạng thái**: Bản nháp | **Cập nhật lần cuối**: 2026-04-03
+## Pipeline Biên Dịch Hỗ trợ Đa Nền Tảng (Multi-Target) — Giải quyết C10: "Khoảng trống Ngữ Nghĩa giữa các Cấu Hình Build"
+
+> **Trạng thái**: Bản nháp | **Cập nhật lần cuối**: 2026-04-05
 
 ---
 
-## 1. Phương Thức Vận Động (Pipeline) của Compiler
+## 1. Luồng Xử Lý (Pipeline) của Trình Biên Dịch
 
 ```mermaid
 flowchart TD
-    A["Source Code (.copl)"] --> B["Từ Vựng Lexer"]
-    B --> C["Phân tách Cấu Trúc Parser"]
-    C --> D["Cây Cấu Trúc Trừu Tượng AST"]
-    D --> E["Phân Tích Ngữ Nghĩa<br/>Semantic Analysis"]
+    A["Mã Nguồn Source Code (.copl)"] --> B["Bộ phân tích từ vựng (Lexer)"]
+    B --> C["Bộ phân tích cú pháp (Parser)"]
+    C --> D["Cây Cú Pháp Trừu Tượng (AST)"]
+    D --> E["Phân Tích Ngữ Nghĩa<br/>(Semantic Analysis)"]
 
-    E --> E1["Tìm phân dải Name"]
-    E --> E2["Bộ chẩn Type"]
-    E --> E3["Rà soát Effect"]
-    E --> E4["Nắn Profile"]
-    E --> E5["Kiểm tra Contract"]
-    E --> E6["Dò Trace Linker"]
+    E --> E1["Phân giải tên (Name Resolution)"]
+    E --> E2["Kiểm tra kiểu dữ liệu (Type Checking)"]
+    E --> E3["Suy diễn hiệu ứng (Effect Inference)"]
+    E --> E4["Kiểm tra Profile (Profile Checking)"]
+    E --> E5["Kiểm tra Hợp đồng (Contract Checking)"]
+    E --> E6["Liên kết truy xuất (Trace Linking)"]
 
-    E1 --> F["Bộ Đúc Khuôn SIR<br/>(Semantic IR)"]
+    E1 --> F["Trình Xây Dựng Biểu Diễn Mức Ngữ Nghĩa<br/>(Semantic IR - SIR Builder)"]
     E2 --> F
     E3 --> F
     E4 --> F
     E5 --> F
     E6 --> F
 
-    F --> G1["C Lowering<br/>SIR → C-TIR"]
-    F --> G2["Rust Lowering<br/>SIR → Rust-TIR"]
-    F --> G3["Go Lowering<br/>SIR → Go-TIR"]
+    F --> G1["Hạ cấp xuống C<br/>SIR → C-TIR"]
+    F --> G2["Hạ cấp xuống Rust<br/>SIR → Rust-TIR"]
+    F --> G3["Hạ cấp xuống Go<br/>SIR → Go-TIR"]
 
-    G1 --> H1["C Codegen"]
-    G2 --> H2["Rust Codegen"]
-    G3 --> H3["Go Codegen"]
+    G1 --> H1["Sinh mã C (C Codegen)"]
+    G2 --> H2["Sinh mã Rust (Rust Codegen)"]
+    G3 --> H3["Sinh mã Go (Go Codegen)"]
 
     H1 --> I1["Tệp .h + .c<br/>(arm-none-eabi-gcc)"]
     H2 --> I2["Thư mục .rs<br/>(rustc / cargo)"]
     H3 --> I3["File .go<br/>(go build)"]
 ```
 
-## 2. Diễn tiến các Giai Đoạn (Phase Details)
+## 2. Chi Tiết Các Giai Đoạn (Phase Details)
 
-### Giai Đoạn 1: Lexer (Tạo chuỗi ngắt dòng Tín Hiệu Nguồn Source → Tokens)
+### Giai Đoạn 1: Lexer (Chuyển đổi chuỗi ký tự thành luồng Token)
 
 ```python
 class Lexer:
-    """Biến mã ký tự thô trong tệp source code text về một nguồn nhả ra tín hiệu token stream.
+    """Chuyển đổi văn bản mã nguồn thành một luồng token (token stream).
     
-    Yêu cầu Tốc độc tiêu chuẩn: Quét quét ngốn 1M tokens/sec
-    Yêu cầu Mốc RAM: chạy Streaming tuần hoàn liên tiếp (Sài ít tốn hạn O(1) memory trên từng block mã file)
+    Yêu cầu hiệu năng: Xử lý 1M tokens/giây.
+    Yêu cầu bộ nhớ: Hoạt động theo cơ chế streaming, độ phức tạp không gian O(1) trên mỗi file.
     """
     
     def tokenize(self, source: str, filename: str) -> Iterator[Token]:
@@ -63,14 +64,14 @@ class Lexer:
         yield Token(TokenType.EOF, "", line, col)
 ```
 
-### Giai Đoạn 2: Parser (Cuộn ghép dòng Từ vựng cắt Tokens → Thành Cây dữ liệu AST)
+### Giai Đoạn 2: Parser (Bộ Phân Tích Cú Pháp tạo ra AST)
 
 ```python
 class Parser:
-    """Máy cuộn Đệ quy (LL(1) recursive descent parser).
+    """Bộ phân tích thuật toán đệ quy theo hướng từ trên xuống (LL(1) recursive descent parser).
     
-    Tiêu chuẩn Bảng Ngữ Pháp: Tổng bộ 152 Mẫu Định Tuyến Production rules (Hãy ghé lại nhánh đọc bài viết tài liệu số 01_grammar_spec.md)
-    Biện pháp Trục Vớt Khủng Cố khi rớt mảng lỗi (Error recovery): Tính năng Panic mode bỏ qua khúc nghẽo lỗi — trượt luồng Skip để vượt qua hố cạn mà nhắm tới điểm tụ sync mốc tiếp theo token nhảy ra
+    Đặc tả Tập luật (Grammar): Khoảng 152 luật dẫn xuất (Quy chiếu tài liệu 01_grammar_spec.md)
+    Khôi phục lỗi (Error recovery): Sử dụng chiến lược Panic Mode - bỏ qua các token lỗi và tìm kiếm điểm đồng bộ tiếp theo (sync point).
     """
     
     def parse_module(self) -> ASTModule:
@@ -84,7 +85,7 @@ class Parser:
     def parse_module_items(self) -> list[ASTItem]:
         items = []
         while self.current.type != TokenType.RBRACE:
-            # LL(1): Phân trích bằng hệ quy nạp nhắm mắt báo trước nhìn cờ hiệu (lookahead token)
+            # LL(1): Kiểm tra thẻ kế tiếp (lookahead) để quyết định cú pháp
             match self.current.type:
                 case TokenType.AT:      items.append(self.parse_annotation_block())
                 case TokenType.PUB:     items.append(self.parse_pub_item())
@@ -107,37 +108,37 @@ class Parser:
         return items
 ```
 
-### Giai Đoạn 3: Semantic Analysis (Phân Tích Ngữ Nghĩa Từ Vựng Nội Hàm)
+### Giai Đoạn 3: Semantic Analysis (Phân Tích Ngữ Nghĩa)
 
 ```python
 class SemanticAnalyzer:
-    """Máy Mổ Xẻ Nội Hàm chắt lọc tầng phân đoạn đa điểm qua đường multi-pass semantic analysis.
+    """Bộ phân tích ngữ nghĩa hoạt động theo cơ chế duyệt đa vòng (multi-pass semantic analysis).
     
-    Lưới Chải Lần 1: Lược giản định danh Name resolution — Cắt khóa gộp dời móc thông suốt giải quyết toàn bộ định vị (resolve all identifiers)
-    Lưới Chải Lần 2: Check Soát Cấu Trúc Kiểu Type checking — Rà check thuật toán hai chiều quy nạp (bidirectional type inference)
-    Lưới Chải Lần 3: Moi thông tin Rà Cảm Xúc Biến Tính Effect inference — Thu nhặt thông tin tính nhẩm gán Mác Effects ra hết tất thảy khai báo func
-    Lưới Chải Lần 4: Đo ép khuôn Profile checking — Cắt lớp lọc vi phạm cấm vận không do giới hạn profile
-    Lưới Chải Lần 5: Xét Duyệt tính Đồng Thuận Giao Kèo Contract checking — Đo xét khối Logic code Expression ghi vào cờ Hợp Đồng có chuẩn đánh kiểu dán Typed xôi hỏng bỏng không.
-    Lưới Chải Lần 6: Khới Link Trace linking — Thiết lập cấu nối găm chân trỏ Mũi Tên yêu cầu requirements ↔ hàm thực thi code ↔ bộ mảng đánh test
+    Vòng 1: Phân giải Định danh (Name resolution) — Ràng buộc tất cả các biến số, hàm và ký hiệu.
+    Vòng 2: Kiểm tra Kiểu Dữ Liệu (Type checking) — Xác nhận tính tương thích kiểu dữ liệu bằng suy diễn kiểu 2 chiều.
+    Vòng 3: Suy diễn Hiệu ứng (Effect inference) — Xâu chuỗi các hàm chứa Hiệu ứng phụ (Effects).
+    Vòng 4: Kiểm tra Profile — Định đoạt bộ ràng buộc profile tương ứng phần cứng mục tiêu (vd: embedded không cho bộ nhớ động).
+    Vòng 5: Kiểm tra Hợp đồng (Contract checking) — Phân tích các ràng buộc Design-by-Contract để đảm bảo tính an toàn.
+    Vòng 6: Liên kết Mã hoá (Trace linking) — Kết nối luồng liên kết giữa yêu cầu phần mềm, lập trình thực thi và bài kiểm tra (tests).
     """
     
     def analyze(self, ast: ASTModule) -> AnalysisResult:
-        # Pass 1: Xây Bảng Mã Ánh Xạ Symbol table
+        # Pass 1: Xây dựng bảng kí hiệu (Symbol table)
         symbols = self.name_resolver.resolve(ast)
         
-        # Pass 2: Khẩu trừ Type check
+        # Pass 2: Kểm tra tương thích kiểu (Type check)
         type_errors = self.type_checker.check(ast, symbols)
         
-        # Pass 3: Áp đoán Infer effects
+        # Pass 3: Tìm và gán Hiệu ứng phụ (Infer effects)
         effects = self.effect_checker.infer(ast, symbols)
         
-        # Pass 4: Nắn Chuẩn Khuôn Độ Profile compliance
+        # Pass 4: Đối chiếu quy tắc Profile
         profile_errors = self.profile_checker.check(ast, effects)
         
-        # Pass 5: Bắt Lỗi Mốc Thỏa Định Contract types
+        # Pass 5: Đối chiếu hợp đồng (Contract check)
         contract_errors = self.contract_checker.check(ast, symbols)
         
-        # Pass 6: Nối Rễ Mã Hóa Link Trace links
+        # Pass 6: Gắn kết yêu cầu kỹ thuật (Trace linking)
         trace_info = self.trace_linker.link(ast)
         
         all_errors = type_errors + profile_errors + contract_errors
@@ -149,17 +150,17 @@ class SemanticAnalyzer:
         )
 ```
 
-### Giai Đoạn 4: Bộ Đúc Lắp Kiến Tạo SIR (SIR Builder)
+### Giai Đoạn 4: Trình Xây Dựng IR Ngữ Nghĩa (SIR Builder)
 
 ```python
 class SIRBuilder:
-    """Cụm Dồn Gộp Xây Trấn lên Khối Tinh Phôi SIR (Từ Cây Trừu Tượng được Xâu Chuỗi Rà Xé phân tách đã tinh lọc AST)
+    """Biến đổi Cây cú pháp trừu tượng sau khi thêm ngữ nghĩa thành Semantic IR (Trí Thông Minh Nội Tại của Compiler).
     
-    SIR = Nguồn IR Dành Riêng cho mặt Ngữ Nghĩa Ý Niệm Logic (Khẳng định thông tin đọc qua file số 04_sir_schema.md)
-    Giá Trị Của Nó đại diện cho Nền Móng TRUNG TÂM TUYỆT PHẨM đóng chóp ngự trị (CENTRAL representation) ứng với các khối như:
-      - Thiết Bộ Target lowering (cấp mã luân chuyển hạ tầng hardware nhằm xõa tung ra khối thông dịch code generation)
-      - Máy In Phân Kênh Kết Tính Artifact engine (Lập khung Trả số liệu ghi biên bản Báo Cáo cho Reports)
-      - Chuyên Vụ Phân Tích Dự Án cho AI Agent (Đọc Lại Toàn Văn nhằm Phân tích Hấp thụ Ý Chí Lập Trình Về Trọn Bộ cho project)
+    SIR = Nền tảng cấu trúc Đại diện Đa chức năng cho thiết kế Compiler (Theo dõi document số 04_sir_schema.md).
+    Đây là Cấu Trúc Khối Nguồn (Central Representation) cho:
+      - Hạ cấp nền tảng (Target lowering) để gửi bộ biên dịch dịch sang ngôn ngữ máy.
+      - Máy phân phối Tài Liệu Tích Hợp (Artifact Engine) phục vụ thống kê báo cáo.
+      - Chức năng thu thập nguồn tư liệu thông minh cho AI suy luận về mã nguồn tổng.
     """
     
     def build(self, modules: list[AnalyzedModule]) -> SIRWorkspace:
@@ -169,7 +170,7 @@ class SIRBuilder:
             sir_module = self.build_module(module)
             workspace.add_module(sir_module)
         
-        # Vắt Lực Tính Toán Toàn Thể Độ Dung Hòa Liên Lớp Cụm module (cross-module properties)
+        # Khởi tạo thông tin hệ thống dạng đa module (cross-module properties)
         workspace.dependency_graph = self.build_dependency_graph(workspace)
         workspace.trace_matrix = self.build_trace_matrix(workspace)
         workspace.computed.overall_risk = self.compute_risk(workspace)
@@ -178,28 +179,28 @@ class SIRBuilder:
         return workspace
 ```
 
-### Giai Đoạn 5: Biến Dịch Hạ Tầng Cho Nền Target Cụ Thể (SIR → TIR)
+### Giai Đoạn 5: Target Lowering (Hạ Cấp SIR thành TIR)
 
 ```python
 class CLowering:
-    """Tua Ráp Chuẩn Biến Hóa Đầu Đích hạ nguồn về thành khung sương mã C chuyên chóp C-TIR (Hạ phanh SIR thành C-TIR)."""
+    """Thực thi hạ cấp từ mức trừu tượng trừu tượng cao của SIR về mức phụ thuộc cấu trúc C-TIR riêng biệt."""
     
     def lower(self, sir: SIRWorkspace) -> CTIR:
         tir = CTIR()
         
         for module in sir.topological_order():
-            # Định Khúc Bản Khuôn Generate header
+            # Sinh mã cho tệp Header (.h)
             header = self.generate_header(module)
             tir.add_header(module.name, header)
             
-            # Định Khúc Lõi Body Ngầm Generate source file content
+            # Sinh mã cho tệp Source (.c)
             source = self.generate_source(module)
             tir.add_source(module.name, source)
         
         return tir
     
     def lower_type(self, sir_type: SIRType) -> CType:
-        """Đắp nặn Nếp Type (Móc chéo COPL type để lột thay đổi map dính thành chuẩn C type)."""
+        """Đổi các định dạng Type của hệ thống COPL chuẩn về các kiểu dữ liệu C tiêu chuẩn."""
         match sir_type.kind:
             case Primitive("U32"):   return CType("uint32_t")
             case Primitive("Bool"):  return CType("bool")
@@ -209,11 +210,11 @@ class CLowering:
             case Named(id):          return CType(sir_type.name)
 ```
 
-### Giai Đoạn 6: Code Generation (Hệ Trưởng Gõ Mã Trục Xuất Mã Ngôn ngữ Cuối TIR → C/Rust/Go Target Source)
+### Giai Đoạn 6: Code Generation (Hạ cấp Mã từ hệ TIR thành Source Code Cuối Cùng)
 
 ```python
 class CCodegen:
-    """Hệ Thông Soát Xuất Build Mã Text Source C (Generate C source files) lấy thông số lồng từ khuôn C-TIR."""
+    """Tạo tệp mã nguồn C vật lý theo dạng tệp tin từ TIR module."""
     
     def generate(self, tir: CTIR, output_dir: str) -> list[str]:
         generated = []
@@ -228,83 +229,83 @@ class CCodegen:
             self.write_source_file(path, source)
             generated.append(path)
         
-        # Bồi thêm Bộ Ráp Kịch Bản Build Generate Makefile
+        # Sinh Makefile cơ chế Build cho code xuất ra
         self.generate_makefile(output_dir, tir)
         
         return generated
 ```
 
-## 3. Guồng Máy Chuyên Xuất Cốt Thành Thục Kết Tinh Sự Kiện Hướng Đích (Artifact Engine)
+## 3. Hệ Thống Xuất Báo Cáo Artifact (Artifact Engine)
 
-Cài Lệnh Nhảy Số Chạy Song Song Đu Bám Tiến Trình Biên Dịch codegen — Cơ sở chốt báo Lõi ra bản tóm gọn nén gỡ rối (generates artifacts from SIR):
+Hoạt động song song với lúc sinh mã nguồn - hệ thống tự động xuất ra các siêu dữ kiện (Dựa theo khối dữ liệu nguồn SIR):
 
 ```python
 class ArtifactEngine:
-    """Tự Độ máy móc Thống Kê ghi Bản Văn In human/AI-readable artifacts thu trích ép mật từ nấm gốc SIR."""
+    """Tự động phân bố các biểu thống kê và tài liệu có giá trị cho Nhân Sự/AI. Giải nén thông tin từ mạng SIR."""
     
     def emit(self, sir: SIRWorkspace, output_dir: str) -> ArtifactBundle:
         bundle = ArtifactBundle()
         
-        # 1. Khai Chiếu Bản Ngắn File Module (Thẻ summary cards dành ra 1 cái cho 1 module)
+        # 1. Tóm Lược Module (Tạo module summary cards)
         for module in sir.all_modules():
             card = self.generate_summary_card(module)
             bundle.add_card(card)
         
-        # 2. Phát Ghi Khai Sơ đồ Phụ Thuộc Dependency graph
+        # 2. Xuất Sơ đồ Phụ Thuộc (Dependency graph) ra định dạng truy vấn
         bundle.dependency_graph = sir.dependency_graph.to_json()
         
-        # 3. Lập Bảng Thống Tịch Theo Giới Độ Phủ Trace matrix
+        # 3. Tạo Ma trận truy xuất nguồn gốc (Trace matrix)
         bundle.trace_matrix = sir.trace_matrix.to_json()
         
-        # 4. Kiểm Kê Mã Bốc Điểm Bảng Đo Công Việc Status / workitems
+        # 4. Liệt kê Trang Thái Tính Năng / Hạng Mục Công Việc 
         bundle.workitems = [wi.to_json() for wi in sir.all_workitems()]
         
-        # 5. Phập Mạch Tấu Cáo Hiểm Họa Mức Cảnh Báo Bản Rủi Ro (Risk report)
+        # 5. Phân Tích Cảnh Báo Rủi Ro Hệ Thống Cao Cấp (Risk Report)
         bundle.risk_report = self.generate_risk_report(sir)
         
         bundle.save(f"{output_dir}/ai/")
         return bundle
 ```
 
-## 4. Chiến lược Thao lược Phân Xử Phục Hồi Lỗi Hổng (Error Recovery Strategy)
+## 4. Chiến Lược Xử Lý Phục Hồi Khi Phát Hiện Lỗi (Error Recovery Strategy)
 
 ```python
 class ErrorRecovery:
-    """Bảng Quy Mạch Cho Hệ Điều Trình Compiler Tiếp Theo Khi Bước Đi Bị Lỗi Dội Ngã Gãy (Khung Cơ Sở Bảo Quản Lượng Truy Vớt Hiển Thị Thượng Đỉnh Cao Nhất maximum useful info)."""
+    """Giao cấu tự sửa, hỗ trợ quá trình Biên Dịch bỏ qua số lỗi cục bộ nhằm giúp hệ Parser vẫn hoạt động hết năng suất."""
     
-    # Synchronization tokens (Tín Hỗ Điều Đồng Phân Phối Trùng Khớp Kệnh Tín) — Cuộn Cặp lệnh Băng qua Cho Bộ Parser Tự Đu Mình Bám Chấm Lành Lặn
+    # Synchronization tokens - Điểm đồng bộ (Các thẻ an toàn để tái kích hoạt trình sinh phân tích)
     SYNC_TOKENS = {
         TokenType.FN, TokenType.STRUCT, TokenType.ENUM,
         TokenType.MODULE, TokenType.RBRACE, TokenType.SEMICOLON
     }
     
     def recover(self, parser, error):
-        """Skip tokens until sync point (Nhảy phước rác không rành rẽ bỏ qua vướt rào để nhấp bờ tìm token ăn sóng sync point)."""
+        """Bỏ qua token (Tín hiệu nhiễu lỗi) tới điểm an toàn gần nhất (Sync point) để tái hồi." """
         parser.diagnostics.append(error)
         while parser.current.type not in self.SYNC_TOKENS:
             parser.advance()
-        # Vực dậy Lại Nền Trình Bộ Nén Parser Chín Sinh Đạo Parse Resume khôi phục lại tính mạng
+        # Đưa trạng thái trình parser chạy tiếp để tránh phá huỷ quy trình biên dịch
 ```
 
-## 5. Bảng Dòng Lệnh Cú Pháp COPL Compiler Gọi (Compiler CLI)
+## 5. Cú Pháp Dòng Lệnh Của COPL Compiler (Compiler CLI)
 
 ```bash
-# Phóng Biên Dịch Cho Bộ Thiết Bị Target ra mã code chuẩn C target
+# Biên dịch hệ thống sang nền tảng chỉ thị ngôn ngữ lập trình C (C target)
 copc build --target c --profile embedded --output out/c/
 
-# Gọi Mã Kiểm Xét Bug Mọt (Code Chạy Tính Rà Lỗi Thuần check only, Không xuất mã nhúng Build code No codegen)
+# Mode: Phân tích Lỗi và Gỡ Bug (Chỉ phân tích ngữ nghĩa, không chạy tác vụ Codegen tạo file)
 copc check --profile embedded
 
-# Chỉ chắt bóp kết tủa thành phần văn thư báo cáo Emitted AI / Con người báo Artifacts only
+# Mode: Gọi lệnh xuất báo cáo, văn bản kỹ thuật và Artifact cho AI
 copc artifacts --output out/ai/
 
-# Rà build Đong đưa Build toàn triệt để Build + Đập Artifacts gộp hết mọi lệnh
+# Mode: Build toàn vẹn gồm Sinh mã Code và Thống kê Báo Cáo cho AI
 copc build --target c --profile embedded --output out/ --artifacts
 
-# Mã Lệnh Đào Hầm Truy vấn Tra Thống kÊ Query Hệ Cục SIR
+# Lệnh Tra Cứu Truy Vấn Dữ liệu cấu trúc bên trong của mạng SIR tổng
 copc query --module mcal.can --field dependencies
 copc query --trace-coverage
 
-# Mode Ánh Mắt Quan Sát Ứng Đáp Build Nóng Tần Suất Dựng Chớp Bóng Watch mode (Chỉ build mảng chắp vá gia số cho gọn lẹ incremental)
+# Chế độ Theo dõi (Watch mode) - Chạy tự động build lại phần thay đổi khi tệp có sửa chữa (Incremental Build)
 copc watch --target c --profile embedded
 ```
