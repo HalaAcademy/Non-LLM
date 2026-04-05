@@ -1,0 +1,172 @@
+// COPL Example 02 — CAN Driver
+// Ví dụ CAN driver cho STM32F407 với lower blocks.
+// Spec reference: docs/copl/07_lowering_spec.md
+
+module mcal.can {
+    @platform {
+        profile: embedded,
+        memory_mode: static,
+        concurrency_mode: none,
+        target_arch: arm-cortex-m4,
+    }
+    @context {
+        component: "mcal",
+        safety_class: ASIL-B,
+        standard: ISO26262,
+    }
+
+    // Hardware register layout cho CAN controller STM32F407
+    lower_struct CAN_TypeDef @target c {
+        MCR: volatile U32 @offset 0x000,   // Master control register
+        MSR: volatile U32 @offset 0x004,   // Master status register
+        TSR: volatile U32 @offset 0x008,   // Transmit status register
+        RF0R: volatile U32 @offset 0x00C,  // Receive FIFO 0 register
+        RF1R: volatile U32 @offset 0x010,  // Receive FIFO 1 register
+        IER: volatile U32 @offset 0x014,   // Interrupt enable register
+        ESR: volatile U32 @offset 0x018,   // Error status register
+        BTR: volatile U32 @offset 0x01C,   // Bit timing register
+    }
+
+    // Hardware addresses cho CAN1 và CAN2
+    lower_const CAN1: *CAN_TypeDef @target c = 0x40006400;
+    lower_const CAN2: *CAN_TypeDef @target c = 0x40006800;
+
+    // Các hằng số register bits
+    const CAN_MCR_INRQ: U32 = 0x00000001;   // Initialization request
+    const CAN_MCR_SLEEP: U32 = 0x00000002;  // Sleep mode request
+    const CAN_MSR_INAK: U32 = 0x00000001;   // Initialization acknowledge
+    const CAN_BTR_SJW_1TQ: U32 = 0x00000000;
+
+    // ===== Public API =====
+
+    pub struct CanPdu {
+        id: U32,           // CAN ID (11-bit standard: 0x000–0x7FF)
+        data: [U8; 8],     // Payload
+        dlc: U8,           // Data length code (0–8)
+        is_extended: Bool, // True nếu dùng 29-bit extended ID
+    }
+
+    pub enum CanStatus {
+        Ok,
+        BusOff,
+        TxError,
+        RxError,
+        Timeout,
+        NotInitialized,
+    }
+
+    pub enum Baudrate {
+        Kbps125,
+        Kbps250,
+        Kbps500,
+        Mbps1,
+    }
+
+    // Requirement tracing
+    requirement REQ_CAN_001 {
+        id: "REQ-CAN-001",
+        title: "CAN init phải hỗ trợ baudrate từ 125Kbps đến 1Mbps",
+        priority: HIGH,
+        safety_class: ASIL-B,
+    }
+
+    requirement REQ_CAN_002 {
+        id: "REQ-CAN-002",
+        title: "CAN send phải check ID hợp lệ và DLC hợp lệ",
+        priority: HIGH,
+        safety_class: ASIL-B,
+    }
+
+    // ===== Implementation =====
+
+    pub fn init(baudrate: Baudrate) -> CanStatus
+        @trace { verifies: ["REQ-CAN-001"] }
+        @contract {
+            post: [result == CanStatus::Ok || result == CanStatus::Timeout],
+        }
+        @effects [register]
+    {
+        // Enter initialization mode
+        lower @target c {
+            CAN1->MCR |= CAN_MCR_INRQ;
+            CAN1->MCR &= ~CAN_MCR_SLEEP;
+        }
+
+        // Wait for INAK bit (simplified — real code would timeout)
+        // TODO: implement timeout counter
+
+        // Set baudrate (simplified)
+        match baudrate {
+            Baudrate::Kbps125 => lower @target c { CAN1->BTR = 0x001C0027; },
+            Baudrate::Kbps250 => lower @target c { CAN1->BTR = 0x001C0013; },
+            Baudrate::Kbps500 => lower @target c { CAN1->BTR = 0x001C0009; },
+            Baudrate::Mbps1   => lower @target c { CAN1->BTR = 0x001C0004; },
+        }
+
+        // Leave initialization mode
+        lower @target c {
+            CAN1->MCR &= ~CAN_MCR_INRQ;
+        }
+
+        return CanStatus::Ok;
+    }
+
+    pub fn send(pdu: CanPdu) -> CanStatus
+        @trace { verifies: ["REQ-CAN-002"] }
+        @contract {
+            pre: [pdu.id <= 0x7FF && pdu.dlc <= 8],
+            post: [result == CanStatus::Ok || result == CanStatus::TxError],
+        }
+        @effects [register]
+    {
+        // Check mailbox available (simplified)
+        // In real code: check TSR register bits
+
+        // Load ID
+        lower @target c {
+            CAN1->sTxMailBox[0].TIR = (pdu.id << 21);
+            CAN1->sTxMailBox[0].TDTR = pdu.dlc;
+            CAN1->sTxMailBox[0].TDLR = /* load data[0..3] */ 0;
+            CAN1->sTxMailBox[0].TDHR = /* load data[4..7] */ 0;
+            CAN1->sTxMailBox[0].TIR |= 0x01; // Request transmission
+        }
+
+        return CanStatus::Ok;
+    }
+
+    pub fn recv(pdu: CanPdu) -> Result<CanPdu, CanStatus>
+        @effects [register]
+    {
+        // Check FIFO 0 not empty
+        // In real code: check RF0R register
+
+        // Read PDU from FIFO (simplified)
+        return Ok(pdu);
+    }
+
+    // ===== Tests =====
+
+    test test_init_ok {
+        id: "TEST-CAN-001",
+        verifies: ["REQ-CAN-001"],
+        fn: {
+            let result = init(Baudrate::Kbps500);
+            // expect: result == CanStatus::Ok
+        }
+    }
+
+    test test_send_valid_pdu {
+        id: "TEST-CAN-002",
+        verifies: ["REQ-CAN-002"],
+        fn: {
+            let pdu = CanPdu {
+                id: 0x123,
+                data: [0x01, 0x02, 0x03, 0x04, 0, 0, 0, 0],
+                dlc: 4,
+                is_extended: false,
+            };
+            let result = send(pdu);
+            // expect: result == CanStatus::Ok
+        }
+    }
+}

@@ -1,0 +1,68 @@
+// COPL Example 01 — Minimal
+// File đơn giản nhất để test toàn bộ pipeline.
+// Spec reference: docs/copl/00_overview.md
+
+module examples.minimal {
+    @platform { profile: portable }
+    @context {
+        component: "examples",
+        safety_class: QM,
+    }
+
+    // Hàm tính max của 2 số U32
+    pub fn max(a: U32, b: U32) -> U32
+        @effects [pure]
+    {
+        if a > b {
+            return a;
+        } else {
+            return b;
+        }
+    }
+
+    // Hàm tính min
+    pub fn min(a: U32, b: U32) -> U32
+        @effects [pure]
+    {
+        if a < b {
+            return a;
+        }
+        return b;
+    }
+
+    // Struct ví dụ
+    pub struct Point {
+        x: I32,
+        y: I32,
+    }
+
+    // Enum ví dụ
+    pub enum Direction {
+        North,
+        South,
+        East,
+        West,
+    }
+
+    // Function với match
+    pub fn direction_to_string(d: Direction) -> String
+        @effects [pure]
+    {
+        match d {
+            Direction::North => return "North",
+            Direction::South => return "South",
+            Direction::East  => return "East",
+            Direction::West  => return "West",
+        }
+    }
+
+    // Test entity
+    test test_max {
+        id: "TEST-MIN-001",
+        verifies: ["REQ-MIN-001"],
+        fn: {
+            let result = max(3, 5);
+            // result should be 5
+        }
+    }
+}
