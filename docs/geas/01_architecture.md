@@ -1,18 +1,18 @@
 # Đặc tả Kiến trúc GEAS (GEAS Architecture Specification)
-## Chi tiết 12 Module Lõi — Khắc phục G3: "Thiếu giao thức liên kết giữa các module"
+## Chi tiết Hệ thống 12 Module Lõi — Khắc phục G3: "Thiếu giao thức liên kết giữa các module"
 
 > **Version**: 1.0 | **Status**: Giai đoạn Đặc tả | **Cập nhật lần cuối**: 2026-04-03
 
 ---
 
-## 1. Nguyên lý Kiến trúc
+## 1. Nguyên lý Thiết kế Kiến trúc
 
-1. **Điều hướng qua Tin nhắn (Message-Driven)**: Các Module giao tiếp truyền tải độc quyền qua các gói tin nhắn (typed messages), cấm xài chung state chồng chéo.
-2. **Khả năng Phục dựng (Replay-able)**: Toàn bộ messages được lưu dập log → Cho cớ rà soát dựng lại y đúc mọi luồng tái lưu về sau.
-3. **Mô-đun cắm ráp (Pluggable)**: Mọi chiếc module đóng giao thức interface kín cổng → tha hồ tráo gỡ implementation thay lõi.
-4. **An toàn Chống Chết Chùm (Fail-Safe)**: Module lỗi ngắt gãy sập sẽ không kéo theo chết ngỏm toàn mạng loop của agent.
+1. **Điều hướng qua Thông điệp (Message-Driven)**: Các Module trong hệ thống giao tiếp thông qua các định dạng thông báo (typed messages) tiêu chuẩn, loại bỏ hoàn toàn việc chia sẻ trạng thái chung (shared state) nhằm tránh xung đột dữ liệu.
+2. **Khả năng Phục hồi Tái hiện (Replay-able)**: Tất cả `messages` được lưu trữ dạng Event Log, cho phép tái thiết lập (replay) chính xác trạng thái và luồng xử lý của hệ thống (Agent loop) vào bất kỳ thời điểm nào.
+3. **Mô-đun Độc lập (Pluggable Interface)**: Mỗi module được đóng gói với giao diện `Interface` chuẩn, cho phép thay thế (mock test) hoặc nâng cấp thuật toán nội bộ mà không làm gãy đổ hệ thống.
+4. **An toàn Hệ thống (Fail-Safe)**: Khi một module phát sinh Exception, lỗi sẽ được cô lập, hệ thống điều hướng `fallback` tự động thay vì dẫn đến toàn vẹn Crash của Agent.
 
-## 2. Sơ đồ Quan hệ Module (Dependency Graph)
+## 2. Sơ đồ Quan hệ Phụ thuộc Module (Dependency Graph)
 
 ```
                     ┌─────────────────┐
@@ -20,94 +20,92 @@
                     └────────┬────────┘
                              │
                     ┌────────▼────────┐
-                    │  1. Phiên dịch  │
+                    │  1. Phân tích   │
                     │    Mục tiêu     │
                     └───┬─────────┬───┘
                         │         │
               ┌─────────▼──┐  ┌──▼──────────┐
               │ 2. Quản lý │  │ 3. Xây World│
-              │  Bộ Nhớ    │  │ Model Cảnh  │
+              │  Bộ Nhớ    │  │ Model       │
               └─────┬──────┘  └──┬──────────┘
                     │            │
                     └──────┬─────┘
                     ┌──────▼──────┐
-                    │4. Bộ Chỉ Huy│
-                    │ Lên Kế Hoạch│
+                    │4. Bộ Lập    │
+                    │ Kế Hoạch    │
                     └──────┬──────┘
                     ┌──────▼──────┐
-                    │5. Động Hệ   │
+                    │5. Động cơ   │
                     │ Chính Sách  │
                     └──────┬──────┘
                     ┌──────▼──────┐
-                    │6. Tay Sai   │────► Nền tảng COPL
-                    │ Thi Hành    │
+                    │6. Thực thi  │────► Nền tảng cấu trúc COPL
+                    │ Hành động   │
                     └──────┬──────┘
                     ┌──────▼──────┐
-                    │7. Kẻ Dò Vết │◄─── Trả kết quả Compiler
-                    │ Quan Sát    │
+                    │7. Quan sát  │◄─── Kết quả Trả về từ Compiler
+                    │ Kết quả     │
                     └──────┬──────┘
                     ┌──────▼──────┐
-                    │8. Chuyên gia│
-                    │ Chẩn đoán lỗi
+                    │8. Hệ thống  │
+                    │ Chẩn đoán   │
                     └──────┬──────┘
                     ┌──────▼──────┐
-                    │9. Cỗ Máy    │
-                    │ Tư Duy Ngẫm │
+                    │9. Động cơ   │
+                    │ Tự Đánh giá │
                     └──────┬──────┘
                     ┌──────▼──────┐
-                    │10. Học Viện │
-                    │ Trích Bài   │
+                    │10. Trích xuất│
+                    │ Bài Học      │
                     └──────┬──────┘
                     ┌──────▼──────┐
-                    │11. Kẻ Nạp   │
-                    │ Ký Ức       │
+                    │11. Hợp nhất │
+                    │ Bộ nhớ      │
                     └──────┬──────┘
                     ┌──────▼──────┐
-                    │12. Chuyên   │
-                    │ Sinh Báo Cáo│
+                    │12. Sinh     │
+                    │ Báo Cáo     │
                     └─────────────┘
 ```
 
-## 3. Đặc tả Từng Module Điểm
+## 3. Đặc tả API Từng Module
 
-### Module 1: Goal Interpreter (Diễn dịch Mục tiêu)
+### Module 1: Goal Interpreter (Phân tích Mục tiêu)
 
 ```
-Nhiệm vụ: Parsing giải nghĩa yêu cầu thô sơ của User → Rút trích ra Yêu cầu Chuẩn + Ràng Thuộc Constraints.
-Đầu vào: Thông báo Task chay (text/JSON)
-Đầu ra thẻ Message: GoalParsedMsg { requirement_graph, constraints, missing_info }
-Phụ thuộc: None (Vì là chóp đón điểm vào tiên phong)
+Nhiệm vụ: Phân tích ngữ nghĩa yêu cầu (text/JSON) từ phía Người Dùng → Trích xuất các yêu cầu ràng buộc (Constraints) hợp lệ.
+Đầu vào: Thông báo định dạng Task
+Đầu ra: Message định dạng GoalParsedMsg { requirement_graph, constraints, missing_info }
+Phụ thuộc: None
 
-Chức trách:
-  - Phân tích cữ văn tự nhiên nhập viện của task
-  - Ép ra các Yêu cầu Nghiệp vụ
-  - Ép ra các Điều kiện phi hàm (chuẩn MCU limit, safety limit)
-  - Thấy Cấu trúc mờ mịt → bật câu hỏi phản vệ hỏi ngược User clarify
-  - Vẽ sơ đồ mạng yếp cầu rễ ban đầu
+Chức năng chi tiết:
+  - Phân tích cú pháp NLP để bóc tách luồng yêu cầu chức năng.
+  - Phân tích các giới hạn hệ thống (e.g. constraints cho hệ MCU).
+  - Yêu cầu làm rõ thông tin nếu gặp Ambiguity trong yêu cầu của User.
+  - Khởi tạo Requirement Graph cơ sở.
 
-Giao diện gọi API:
+Giao diện API:
   fn parse_goal(task: Task) -> GoalParsedMsg
-  fn clarify(questions: List<Question>) -> GoalParsedMsg  // Bước sau khi nhận User hỏa mù trả lời
+  fn clarify(questions: List<Question>) -> GoalParsedMsg
 ```
 
-### Module 2: Memory Manager (Bộ Quản Lý Nhớ)
+### Module 2: Memory Manager (Trình Quản Lý Bộ Nhớ)
 
 ```
-Nhiệm vụ: Cất giữ, Tìm dò, Nắm chóp toàn bộ buồng tầng trí nhớ memory.
-Đầu vào: Yêu cầu MemoryQuery, Chuỗi Episodes, Chuỗi Lessons.
-Đầu ra thẻ: MemoryRetrievedMsg { relevant_episodes, lessons, procedures }
-Phụ thuộc thiết yếu: DB SQLite, Nhạc cụ lõi embedding model
+Nhiệm vụ: Xử lý hoạt động lưu trữ (Store), truy vấn (Retrieve) và quản lý khối lượng DB 4 tầng memory.
+Đầu vào: Yêu cầu MemoryQuery, Bản ghi Episodes, Lessons.
+Đầu ra: Message định dạng MemoryRetrievedMsg { relevant_episodes, lessons, procedures }
+Phụ thuộc: Database SQLite, MiniLM Embedding model
 
-Chức trách:
-  - Giữ rương trọn gói chuỗi hồi ký (episodic memory)
-  - Giữ nhót bảo vệ rương quy y (semantic memory)
-  - Giữ nắp vòm sổ tay quy trình (procedural memory)
-  - Nghếch móc lôi ra các khối memory hợp cảnh từ truy vấn query tống xuống
-  - Dãn gỡ mâu thuẫn cho những cuộn lessons chĩa mũi dùi đâm lẫn nhau
-  - Cứa xén ném kho archive dọn mảnh rác trí nhớ nhăn nheo thừa thải
-  - Lôi lấy chóp cành mã branch-aware retrieval
+Chức năng chi tiết:
+  - Quản trị toàn vẹn Episodic Memory (Bộ nhớ Trải nghiệm).
+  - Quản trị quy tắc của Semantic Memory (Bộ nhớ Ngữ nghĩa).
+  - Giám sát Procedural Memory (Luồng chiến lược Workflow).
+  - Cung ứng truy vấn Vector chéo (Vector Search) dựa trên Text Embedding.
+  - Xác nhận xung đột nội dung, dọn dẹp các mục Data cũ (Data Compaction).
+  - Xử lý Routing Branch-aware Retrieval dựa vào mã nhãn Git branches.
 
-Giao diện:
+Giao diện API:
   fn store_episode(episode: Episode) -> EpisodeId
   fn store_lesson(lesson: Lesson) -> LessonId
   fn retrieve(query: MemoryQuery, top_k: int) -> MemoryRetrievedMsg
@@ -116,21 +114,21 @@ Giao diện:
   fn get_stats() -> MemoryStats
 ```
 
-### Module 3: World Model Builder (Kiến Thiết Trạng Thái Thế Giới)
+### Module 3: World Model Builder (Khởi tạo Mô hình Thế Giới)
 
 ```
-Nhiệm vụ: Giữ Rõ Sợi Dây Lập Bảng Mô Hình Định Danh toàn khối code project state.
-Đầu vào: Mã SIR nén ngầm từ COPL compiler, Trạng thái xoay vần file system.
-Đầu ra thẻ: WorldModelUpdatedMsg { project_graph, changes_since_last }
-Phụ thuộc trói: Cáp Truy Vấn Thông SIR COPL Query Interface (Hợp đồng #1)
+Nhiệm vụ: Đồng bộ liên tục và trực quan hóa toàn bộ Trạng thái Dự án (Project State).
+Đầu vào: Cấu trúc SIR đại diện từ quá trình Compiler COPL, File system changes.
+Đầu ra: Message định dạng WorldModelUpdatedMsg { project_graph, changes_since_last }
+Phụ thuộc: COPL SIR Query Interface (Contract #1)
 
-Chức trách:
-  - Xây trát Sơ đồ Project graph dệt từ chuỗi mã SIR
-  - Khới cọc theo dõi vết độ chín modules, dependencies, độ lấp test trace coverage
-  - Canh phao chống thưa trượt drift khi lấn sửa files
-  - Dâng API query cắm rễ chọc tìm cấu hình mống project
+Chức năng chi tiết:
+  - Sinh Network Graph trích lục từ chuỗi mã hệ thống COPL SIR.
+  - Giám sát độ che phủ Test, liên mô hình Modules, Dependency trees.
+  - Chống trôi lệch thông số (State drift) trong quá trình Action Executor thay đổi Code files.
+  - Export API tìm nạp các module trạng thái phụ tùng trong toàn mảng.
 
-Giao diện:
+Giao diện API:
   fn build_from_sir(sir: SIRWorkspace) -> WorldModel
   fn update_incremental(sir_diff: SIRDiff) -> WorldModelUpdatedMsg
   fn query_module(name: str) -> ModuleInfo
@@ -142,19 +140,18 @@ Giao diện:
 ### Module 4: Hierarchical Planner (Quản Trị Kế Hoạch Đa Tầng)
 
 ```
-Nhiệm vụ: Cắm đinh thả giòng Tạo lặp quy củ nhiều tuyến Task phân rã màng multi-level.
-Đầu vào: Lõi GoalParsedMsg, Sa bàn WorldModel, Buồng nhớ hệt MemoryRetrievedMsg.
-Đầu ra thẻ: PlanCreatedMsg { phases, current_step, estimated_completion }
-Lực bám Phụ thuộc: Khối Module 1, 2, 3
+Nhiệm vụ: Cấu trúc hóa Luồng Task đa tầng từ cao độ đến các thực thi Step Task nhỏ lẻ.
+Đầu vào: GoalParsedMsg, WorldModel, MemoryRetrievedMsg.
+Đầu ra: Message định dạng PlanCreatedMsg { phases, current_step, estimated_completion }
+Phụ thuộc: Module 1, 2, 3
 
-Chức trách:
-  - Rã nát Goal → các luồng phases → tác nháp tasks → chia ngóc steps
-  - Đi xâu dọc theo thứ tự khóa lệnh rào module dependent (bắt chóp rễ ngược bottom-up cho nền tảng khối layered)
-  - Gánh thước đo hao tốn effort per task
-  - Trông giữ cảnh giác chọc thủng rác nghẽn task do đợi code bám chéo
-  - Gõ kẻ lại bài plan lúc thấy sai hoặc được dấm thêm thông tin mới
+Chức năng chi tiết:
+  - Phân rã Goal → Phase quy trình → Task vi mô → Step cụ thể.
+  - Ứng dụng mô hình phụ thuộc (Graph Dependency) đảm bảo luồng ưu tiên Bottom-up execution cho các kiến trúc code nền.
+  - Ước tính hao tổn định mức nỗ lực (Effort tracking).
+  - Tự động thay đổi và sắp xếp lại kế hoạch (Replan) khi Action gặp lỗi (Error Check).
 
-Giao diện:
+Giao diện API:
   fn create_plan(goal: GoalParsedMsg, world: WorldModel, mem: MemoryRetrievedMsg) -> Plan
   fn get_next_step() -> PlanStep
   fn replan(reason: ReplanReason) -> PlanRevisedMsg
@@ -162,222 +159,221 @@ Giao diện:
   fn get_progress() -> PlanProgress
 ```
 
-### Module 5: Policy Engine (Động Cơ Chọn Cơ Chế Đi Tiếp)
+### Module 5: Policy Engine (Động cơ Hoạch định Chiến lược)
 
 ```
-Nhiệm vụ: Lựa đong nẩy số chỉ Điểm Cú Hành Động (Action) tối ưu trong hoàn bích cục diện.
-Đầu vào: Mắt Xích PlanStep, Khối Thế Giới WorldModel, Túi khôn MemoryContext.
-Đầu ra: ActionSelectedMsg { action, confidence, reasoning }
-Phụ thuộc: Não Model Nơ ron Neural Mạng Core Model, Module 2, 3, 4
+Nhiệm vụ: Tính toán xác suất (Action probablity) và đề cử lệnh thực thi Action.
+Đầu vào: Tín hiệu PlanStep, WorldModel, MemoryContext.
+Đầu ra: Message định dạng ActionSelectedMsg { action, confidence, reasoning }
+Phụ thuộc: Neural Network Core Model Layer, Module 2, 3, 4
 
-Chức trách:
-  - Bọc nén cấu đồ State → Thả vào Input cho Model nuốt
-  - Chạy mô phỏng vòng đệm đánh thông forward pass → Bán kính phổ rải hành động action
-  - Giáng phán Quyết chọn (Bốc thủ khoa argmax hay đùn bốc mẫu)
-  - Vẽ nắn lý do bào chữa reasoning minh bạch cớ tại sao chọn nhịp cờ đó
-  - Lệnh khóa cổ cấm luẩn quẩn mắc kẹt vòng loop (Cấm sủa lại đòn trật lẫy)
+Chức năng chi tiết:
+  - Chuyển đổi AgentState → Token Input Tensor đưa vào phân tích Model.
+  - Áp dụng kỹ thuật Forward Pass qua Layer Model tạo vùng dải Action Prediction.
+  - Ràng buộc phân nhánh để ra Tín hiệu Quyết Chọn cuối cùng.
+  - Tạo cấu đồ Minh bạch giải trình (Log Reasoning) về các cơ chế lựa chọn.
+  - Thiết lập Check limit chống kẹt vòng lặp (Loop Detection) để ngừng vòng thao tác trùng lặp sai.
 
-Giao diện:
+Giao diện API:
   fn select_action(state: AgentState) -> ActionSelectedMsg
   fn get_action_space() -> List<ActionDef>
-  fn update_policy(lesson: Lesson) -> None  // Online bồi trích đắp trí khôn
+  fn update_policy(lesson: Lesson) -> None
 ```
 
-### Module 6: Action Executor (Tên Đao Phủ Xuất Trảm Lệnh Thực Hành)
+### Module 6: Action Executor (Bộ Thực Thi Lệnh Tương Tác)
 
 ```
-Nhiệm vụ: Mân mó Bóp cò đánh cờ chạy Action phập trực tiếp trên COPL nền tảng.
-Đầu vào: Lệnh ActionSelectedMsg
-Đầu ra: ExecutionResultMsg { outcome, artifacts_changed, duration }
-Phùng Hợp Cắm Chốt: Hợp Tác Kẽ Lệnh COPL Action (Chợp hợp Đồng Hợp Tác #4)
+Nhiệm vụ: Mô đun gắn giao thức IO (Input/Output Interface) để can thiệp vật lý lên Source code.
+Đầu vào: Message định dạng ActionSelectedMsg
+Đầu ra: Message định dạng ExecutionResultMsg { outcome, artifacts_changed, duration }
+Phụ thuộc: COPL Action Interface (Contract #4)
 
-Chức trách:
-  - Dốc ngược Ý đồ siêu thực abstract action → Xuống hành vi vật lý máy móc COPL operation
-  - Nã Gõ/Viết Mới lên file source cục diện .copl
-  - Ngéo cò kẹt bắn COPL compiler (bồi mồi nốc build, check test, xả artifacts)
-  - Nuốt chửng thông quản đầu móm output của file lệnh rớt xuống (từ rãnh báo lỗi stderr, hòm stdout)
-  - Giữ cầu an toàn Timeout
+Chức năng chi tiết:
+  - Khởi tạo File Code `.copl` / Patch cập nhật file.
+  - Giao tiếp CLI với COPL Compiler (Lệnh build, type check, test check).
+  - Thu thập kết quả Output Log (Xác định mã stdout, stderr luồng error).
+  - Thiết lập quy trình dừng nếu hệ thống vượt quá cấu hình Timestamp Threshold.
 
-Bổ cày Action catalog phân dải:
-  create_module(name, content)      → xuất thả tay gõ .copl file
-  modify_module(name, patch)        → trét áp đắp vữa sửa changes
-  delete_module(name)               → tước đao xé thẻ file
-  build(target)                     → bóp sườn gáy gọi copm build
-  build_check_only()                → gióng dò check lỗi mã type, syntax check
-  run_tests(suite)                  → xòe mở test runner
-  emit_artifacts()                  → gõ máy artifact engine gõ tôm
-  query_sir()                       → nhấc xem bói SIR snapshot snapshot
+Danh sách Action Catalog API:
+  create_module(name, content)      → Khởi tạo Source File mới
+  modify_module(name, patch)        → Vá Code hiện thực
+  delete_module(name)               → Thu hồi chức năng
+  build(target)                     → Gọi luồng build đích
+  build_check_only()                → Quét Static Analyzer
+  run_tests(suite)                  → Render chuỗi Test Runner Engine
+  emit_artifacts()                  → Tích xuất tài liệu Code Artifacts
+  query_sir()                       → Chụp bảng tham số SIR System
 
-Giao diện:
+Giao diện API:
   fn execute(action: Action) -> ExecutionResultMsg
   fn get_supported_actions() -> List<ActionDef>
 ```
 
-### Module 7: Outcome Observer (Thẩm Khảo Quan Trắc Kết Cục)
+### Module 7: Outcome Observer (Trình Quan sát Kết cục)
 
 ```
-Nhiệm vụ: Duyệt Nhìn Lỗ Vết Quét Rác Kết Cục Outcome đánh mấu trúng trật.
-Đầu vào: Thông báo mớ hỗn ExecutionResultMsg
-Đầu ra: Trả bảng OutcomeObservedMsg { outcome_class, diagnostics, metrics }
-Giao Kết: Trạm nhận Lỗi từ Hợp đồng COPL Diagnostic (Hợp đồng Cắm chéo số #2)
+Nhiệm vụ: Đánh giá trạng thái thành bại (Success/Failure status) sau mỗi bước nhúng Executor đi kèm.
+Đầu vào: Message định dạng ExecutionResultMsg
+Đầu ra: Message định dạng OutcomeObservedMsg { outcome_class, diagnostics, metrics }
+Phụ thuộc: COPL Diagnostic Data (Contract #2)
 
-Chức trách:
-  - Ép phân loại hậu vận outcome: Thắng success | Rách Biên dịch compile_error | Tổn kiểu type_error | 
-    Trật Hiệu ứng effect_violation | Rớt Test test_failure | Trôi Giờ timeout | Chịu mù unknown
-  - Kéo bảng chữ lèo bèo dài sòng diagnostics mớ xá từ compiler → Dịch mã lại dễ hiểu
-  - Soát gác đo điểm hệ metrics (Mất nhiêu phút Compile compile time, chỉ số độ test càn lướt)
-  - Nắm chóp thụt lùi ngáng Regression báo hiệu đợt lỗi ma quỷ lạ hoắc nhú ra
+Chức năng chi tiết:
+  - Phân loại lỗi Output Trạng thái: Success | compile_error_syntax | compile_error_type | 
+    effect_violation | test_failure | timeout | unknown
+  - Chuẩn quy thông số (Parser Error Diagnostics) về dạng định dạng có cấu trúc rõ ràng.
+  - Cập nhật số liệu Metrics (Compile time tốn, Test Result coverage báo cáo).
+  - Báo động khẩn nếu phát hiện sự cố hệ Regression (Tính lùi bước code).
 
-Giao diện:
+Giao diện API:
   fn observe(result: ExecutionResultMsg) -> OutcomeObservedMsg
   fn classify_outcome(result: ExecutionResultMsg) -> OutcomeClass
 ```
 
-### Module 8: Diagnoser (Khoa Bệnh Học Phân Tích Lỗi Tiên Môn)
+### Module 8: Diagnoser (Mô đun Chẩn đoán Root-Cause Lỗi)
 
 ```
-Nhiệm vụ: Trảo Gốc Cạo Cội rễ Tận rốn nguồn mắc mọt Root cause khi nảy sinh thất bại.
-Đầu vào: OutcomeObservedMsg mớ quan sát lỗi, Sa bàn WorldModel, Tiểu sử Action vung tay vòng trước
-Đầu ra: Trả phiến bài DiagnosisCompleteMsg { root_cause, affected_modules, fix_strategy }
-Dính líu: Hệ Module 7, 3
+Nhiệm vụ: Phân tích cốt lõi của nguyên căn lỗi (Root Causes Analysis).
+Đầu vào: Tín hiệu OutcomeObservedMsg, WorldModel, Agent History Action
+Đầu ra: Message định dạng DiagnosisCompleteMsg { root_cause, affected_modules, fix_strategy }
+Phụ thuộc: Module 7, 3
 
-Chức trách:
-  - Bản họa triệu chứng bug → Móc nọc găm Rễ căn Root causes (Rà rule vạch hoặc rà mớ rút ruột máy learned)
-  - Nhận điểm nhúm nhóm các module điếc đặc từ hiệu ứng lỗi liên ca chùm
-  - Phím mớm cách Fix cứu cánh (gọi viện quân từ procédural memory nhả bài xài mẹo)
-  - Xốc bài Xếp hạng mẹo fix (Rank fix) theo dòng suy nghĩ tính thành công
+Chức năng chi tiết:
+  - Kết nối cấu trúc Diagnostic Tree → Phát hiện ngọn nguồn của Lỗi Dịch (Sử dụng Rule-based mapping và Machine-learned heuristic).
+  - Phát báo số lượng Component Modules chịu liên đới (Cascading Error Trace).
+  - Ưu tiên phương án Fix (Lấy chiến dịch Action Resolve qua Module Procedural Memory).
+  - Phân hạng (Rank) Độ Tín Nhiệm (Confidence Score) cho từng phương thức Fix.
 
-Kiểu mục Taxonomy Rễ Root Cause Thẩm Đinh:
-  syntax_error (cú pháp thúi)           → sửa gõ lại expression
-  type_mismatch (lệch tone kiểu)        → lót chỉnh annotation hay nhét đệm giá trị
-  undefined_symbol (mất hút hình thù)   → bơm cấy import hoặc khai biến define
-  circular_dependency (lặp ngáo quẩn)   → gỡ chóp rãnh modules đắp cấu lại
-  effect_violation (hiệu ứng bị thủng)  → cạy lại profile hay tạt đường refactor
-  missing_contract (thất tung giao kèo) → mớm nạp điều kiện pre/post conditions
-  architecture_violation (đi bậy kiến trúc) → giật cờ thiết kế gọt lại module boundaries
-  requirement_gap (kẹt lỗ hổng yêu cầu) → nặn nặn nhét nặn thêm rãnh Requirement
-  test_failure (bể test ngập mặt)       → rũ bụi dò logic hoặc xốc xô nắn update test
+Danh sách Taxonomy phân vùng Lỗi Căn Bản:
+  syntax_error                  → Lỗi cú pháp biểu thức gốc
+  type_mismatch                 → Xung đột kiểu dữ liệu (Mismatched typings)
+  undefined_symbol              → Sai khác thư viện biến Variables/Functions imports
+  circular_dependency           → Loop gãy Modules (Dependency cycles)
+  effect_violation              → Vi phạm Profile System Effects Framework
+  missing_contract              → Lỗi báo khuyết luồng pre/post execution conditions
+  architecture_violation        → Gãy ranh phân tách Module Boundaries
+  requirement_gap               → Gap khoảng trống logic lập trình yêu cầu tính năng
+  test_failure                  → Gãy đổ Module Verification Test suites
 
-Giao diện:
+Giao diện API:
   fn diagnose(outcome: OutcomeObservedMsg, world: WorldModel) -> DiagnosisCompleteMsg
   fn get_known_causes() -> List<RootCause>
 ```
 
-### Module 9: Reflection Engine (Ban Tự Kiểm Điểm Tư Duy Meta)
+### Module 9: Reflection Engine (Mô đun Tự Đánh Giá)
 
 ```
-Nhiệm vụ: Suy tư, Nhìn nhận Phản ảnh (Meta-reasoning) độ đần hoặc sự nhặm lẹ sức mạnh Performance của thân chủ agent.
-Đầu vào: DiagnosisCompleteMsg chẩn điểm sập lỗi, Nhật trình lôi cổ hành vi action, Phiếu ghi kế hoạch plan
+Nhiệm vụ: Thu thập dữ liệu Meta-reasoning để tối ưu và thay đổi trạng thái tiến bộ bản thân cấu hình agent.
+Đầu vào: DiagnosisCompleteMsg, Action History Logs, Tiêu Chuẩn Kế Hoạch PlanStep
 Đầu ra: ReflectionDoneMsg { insights, plan_adjustments, self_assessment }
-Nhờ rinh theo: Cánh tay Module 8, 4
+Phụ thuộc: Module 8, 4
 
-Chức trách:
-  - Suy xét dập chốt mẫu hình sai vấp mâm xôi failures (Tức có bị trúng vấp 1 lỗi té lần 2 dở không?)
-  - Khoán đánh giá sự cắc cớ trong Plan đồ chất lượng (Có mờ mịt vague ko? Có chia vụn dập nham nhở ko?)
-  - Đọc bóp bắt thóp điểm chí mạng yếu trong nhịp điệu strategy
-  - Đàn Khải tấu Tích chỉnh bù lấp mớ plan
-  - Đọ Vạch Chiến Thuật Lưỡi Hiện Hành Giăng Đối Ẩm với Phương Đồ Vết Dích Sắc Memory lịch sử từng hạ đo ván lúc thuở bé
+Chức năng chi tiết:
+  - Truy vết lỗi trùng lặp đệ quy (Recurrent Pattern Failures check).
+  - Thẩm định độ chuẩn xác của Planner System (Báo hiệu nếu Lộ trình Kế Hoạch Plan ko khả thi thực chiến).
+  - Sàng lọc và cảnh báo về mức độ Performance của mô hình hiện đại.
+  - Can thiệp đề xuất bổ sung thêm Steps Cận Vệ Back-up Plan nếu bắt nhận lỗ hổng Logic Plan cũ.
+  - So khớp lại độ tương quan với dữ liệu cấu trúc Historical Event Pattern trong quá khứ.
 
-Giao diện:
+Giao diện API:
   fn reflect(diagnosis: DiagnosisCompleteMsg, history: ActionHistory) -> ReflectionDoneMsg
 ```
 
-### Module 10: Lesson Learner (Cô Giáo Gõ Đầu Rút Điểm Phê Học Đạo)
+### Module 10: Lesson Learner (Mô đun Trích xuất Cấu Trúc Khối Bài Học)
 
 ```
-Nhiệm vụ: Vắt ruột Ép dịch rút cục vàng Lesson Mẹo Đi Rắn structured từ kinh qua sa trường trầy trợt.
-Đầu vào: ReflectionDoneMsg trích đoạn soi tâm tư, Nhật ký ngấn mã episode
-Đầu ra: Phái bùa Lệnh LessonExtractedMsg { lessons, confidence, applicability }
-Theo gót nương bóng: Tổ Module 9
+Nhiệm vụ: Chuyển đổi dữ liệu Reflection thô sơ thành Structured Rule Pattern (Lesson Unit).
+Đầu vào: Khối ReflectionDoneMsg, Tập Record Episodes
+Đầu ra: Message định dạng LessonExtractedMsg { lessons, confidence, applicability }
+Phụ thuộc: Module 9
 
-Chức trách:
-  - Pha chế Reflection Ngẫm → Thổi hồn vào khuôn đúc bài học cấu rập structured lesson
-  - Tặng số phiếu chỉ điểm Tín Mệnh Giao confidence score (Dựa trên cục vàng bằng chứng đo lường)
-  - Vạch rõ cõi lãnh thổ sử dụng applicability context (Luật bài này nhét lọt đánh xáp lá cà trận nào thì ăn)
-  - Rà cờ phang nhận Giác: Lesson Trùng Mắt Không? → Lấy gom cọng điểm thắt điểm evidence nhét lấn
-  - Thấy Ngáo Ngáo Chọi Nhầm Bài Đang Sống Cũ → Giương mỏ cờ Mâu Thuẫn báo Trạm Resolution gỡ lỗi
+Chức năng chi tiết:
+  - Render thông số dữ liệu Insights → Đúc khối Bài Học Pattern Hóa (Lesson Formatted Schema).
+  - Khởi tạo nhãn tính phân định Confidence Score (Dựa trên thông kê Evidence Trọng Số Mật độ Mẫu Code Vượt Qua).
+  - Xếp định thẻ Tags Scope Context (Hoàn cảnh tương ứng để kích hoạt rules bài học).
+  - Tạo rào định Tuyến (Deduplication Check) khi phân lọc Lesson đã tồn kho → Cập nhật Index Thống kê Evidence ++ lên cọng Lesson Data DB.
+  - Đẩy Flag Cảnh Báo Lỗi về Khối Memory Resolution nếu bắt tín hiệu mâu thuẫn hệ điều quy.
 
-Khung xương Bài Lesson:
-  context (Khung chóp thế vị): Mảnh miếng đệm xài cho trường hợp quái nào?
-  problem (Ghút Hố Sụt): Oái oăm nào thọc bánh xe rọt?
-  root_cause (Lỗi Cội Rễ): Bới vì cớ xui nào mà ngắc óc?
-  solution (Cao Kiến Ngự Liều): Mũi dao bọc gân nào nín giải quật gãy nó?
-  confidence (Phím Trắc Độ Thật): Đủ rổ tín nhiệm ẵm tin mình thắng hông?
-  evidence (Tang Xác): Bốc ra đám rễ danh sách tập episodes xác quy cớ hụ còi
-  applicability (Cột Ngắm Kềm Áp): Giới Cõi domain (embedded, CAN, safety, bla bla...)
+Schema Chuẩn của Lesson Block Unit:
+  context           → Điều kiện bối cảnh dự án
+  problem           → Đặc thù mã Vấn Đề Bug Error Issue Exception Type
+  root_cause        → Căn cơ chốt lõi ngầm
+  solution          → Giải phương Mẫu đệ trị fix Pattern
+  confidence        → Điểm Tự Tín Xác Nhận Định Mức ML Scoring
+  evidence          → Bằng Chứng Số lượng UUID Episodes Reference
+  applicability     → Trải dài Hệ Profile Limits Constraint Scope Range Domain
 
-Giao diện:
+Giao diện API:
   fn extract_lessons(reflection: ReflectionDoneMsg, episode: Episode) -> List<Lesson>
 ```
 
-### Module 11: Memory Assimilator (Bệ Nén Đồng Hóa Hấp Thụ Cấy Ký Ức Não)
+### Module 11: Memory Assimilator (Mô đun Đồng Hóa Bộ Nhớ Cấu Trúc Mới)
 
 ```
-Nhiệm vụ: Buông dây Cấy ép hạt nhân nảy nở bài mới vào guồng thắt dập buồng chứa hệ Memory system.
-Đầu vào: Thông hàm mớm LessonExtractedMsg
-Đầu ra: Thẻ phím báo MemoryUpdatedMsg { new_entries, promoted, conflicts_resolved }
-Phò Tá Cho Mượn Lực: Hệ Module 2, 10
+Nhiệm vụ: Thẩm định giá trị lưu trữ và Đồng Hóa Nạp data (Assimilate Data) vào DB Database RAM.
+Đầu vào: Dạng Message LessonExtractedMsg
+Đầu ra: Thẻ Message MemoryUpdatedMsg { new_entries, promoted, conflicts_resolved }
+Phụ thuộc: Module 2, 10
 
-Chức trách:
-  - Cất hòm Cất Giấu chòm dải episodes cho thẳng ruột nạp buồng trải nghiệm episodic memory
-  - Điểm nhẵn điểm độ rà check xem Lesson có đắc đạo nhảy đẳng lên cấp phật semantic promotion ko
-  - Giải cứu Vong lặp đấu đá Xung Đột mưu trí chéo nhau ngang ngược
-  - Châm ngấm nặn Procedural rương tay nghề nếu đánh hơi nhịp pattern đi vóng sóng
-  - Bắn Áp mài Bơm ép độ giãn cơ regularize EWC (đè quên lỏng não) thả giọt vào chóp model weights weights
+Chức năng chi tiết:
+  - Khởi Lưu (Persist) Episodes Data luân chuyển vào Không gian Episodic Memory Node Layers.
+  - Phân tích đánh giá chuẩn Promotion Metric → Đẩy (Promote) Khối Cấu Học Tốt Nhập Khu Đất Semantic Rule Core DB.
+  - Xét duyệt gỡ rối Xung Đột (Resolve conflicts) cấu trúc giữa các Pattern Lesson Tương tự khác bối cảnh Context.
+  - Nhập trát Procedural Memory nếu hệ Model gom độ tương đồng đa Project Levels.
+  - Thiết lập thông số bảo mật Ràng Chống Quên EWC Elastic Regularize Weights Penalty (Chống Catastrophic Forgetting).
 
-Giao diện:
+Giao diện API:
   fn assimilate(lessons: List<Lesson>, episode: Episode) -> MemoryUpdatedMsg
 ```
 
-### Module 12: Report Generator (Vòi In Bản Thiết Khai Báo Cáo Document)
+### Module 12: Report Generator (Trình Trích Lưu Sinh Báo cáo)
 
 ```
-Nhiệm vụ: Quay In Bơm Gập Xếp Giấy Cấu đồ Artifacts Rõ Nghĩa Để Loạt Mắt Chữ Human Con người ngấu nghiến.
-Đầu vào: Bản Bố WorldModel, Đồ án Plan, Khối Màng Não Memory, Cụm Nhả Lessons
-Đầu ra: Reports văn chỉ (markdown), Cụm Xả dọn chòi chứa AI bundle đẩy gói
-Ghế Nắp Nâng Phụ Thuộc: Khóm Module 2, 3, 4
+Nhiệm vụ: Viết xuất file Docs Metadata (Markdowns/Logs files) tương thích giao tiếp User Interface.
+Đầu vào: Màng WorldModel, Data Hệ Lên Kế Hoạch Plan, Memory Buffer Data, Chuỗi Lệnh Lessons Learn
+Đầu ra: Cấu trúc Document Report (markdown file format), AI Handoff Giai Khúc Context Bundle.
+Phụ thuộc: Module 2, 3, 4
 
-Chức trách:
-  - Cuộn Xả Reports văn bài trúc Architecture
-  - Bọc Trát Trừu phủ Trace coverage (báo màng lưới rà rách)
-  - Thả Khía Cuộn Bài Học Phơi Bày Ngọt Rẽ lessons learned report
-  - Tống Gắn Đuôi Báo Cáo Chuyển Động Chấm progress report
-  - Chạm Mớ Bundle AI Update mới toanh tươm tất dâng Cúng bàn giao Chuyển kíp gác chéo ca handoff
+Chức năng chi tiết:
+  - Xuất bản tài liệu cấu trúc (Architecture Specifications documents generation).
+  - Kết xuất Code Trace Coverage File báo cáo lưới giăng module.
+  - In ấn sổ tay Lessons Learned Report Matrix file.
+  - Cập Nhật Bảng Progress Report Checkpoints (Status Trackers Sprint Board).
+  - Tự Động Xây Luồng Handoff System Context Configuration (Bundle AI Memory Cache context cho phiên chuyển giao AI agent sau đó).
 
-Giao diện:
+Giao diện API:
   fn generate_report(type: ReportType) -> Report
   fn generate_all_reports() -> List<Report>
 ```
 
-## 4. Tóm Vạch Dòng Nước Lệnh Luân Lưu (Data Flow Summary)
+## 4. Tóm Tắt Quy Trình Luồng Dữ Liệu Liên Kết (Data Flow Pipeline)
 
 ```
-Chạm Đạt Từ User Task
-  → [1] Module Goal Interpreter nhấp vạch → Nẩy thẻ GoalParsedMsg
-  → [2] Buồng Cội Memory Manager lật giở → Trích dẫn MemoryRetrievedMsg
-  → [3] Bàn Trác World Model xây vạch → In Cảnh WorldModelUpdatedMsg
-  → [4] Tướng Mưu Planner Trải Lộ → Hạ lệnh PlanCreatedMsg
-  → [5] Kín Định Policy Cân Não Phân Kế → Rút thẻ ActionSelectedMsg
-  → [6] Tên Cấm Vệ Executor Hành Lệnh → Chui Ống Kết Quả ExecutionResultMsg (Dùng sức thông qua COPL)
-  → [7] Lưới Quan Sát Observer Ngó Lủng → Ghim Tín Chớp OutcomeObservedMsg
-  → [8] Bác Sĩ Diagnoser Bắt Mạch Bệnh → Phán Bản DiagnosisCompleteMsg (Dùng khi Thất trận failure)
-  → [9] Túi Khôn Reflector Nằm Suy Sụp Tỉnh Ngộ → Rút Lọc ReflectionDoneMsg
-  → [10] Phủ Đạo Learner Thấm Nọc Kinh Điển → Gặt Hái LessonExtractedMsg
-  → [11] Tẩy Hồn Nạp Assimilator → Chôn Cất Quả Túi MemoryUpdatedMsg
-  → [12] Vòi Reporter Sục Tăm In Báo → Nhả Cáo Reports
-  → Vòng Chuyển Bánh Canh Dẫn Lại Chóp Bước loop [4] hoặc tua [5] Cho Tới Khi Cắn Trái Đạt Phỉ goal satisfied mãn nguyện
+Tiến trình Nhận Yêu cầu Công tác (User Task Initiate)
+  → [1] Module Goal Interpreter → Tín hiệu GoalParsedMsg
+  → [2] Module Memory Manager → Tín hiệu MemoryRetrievedMsg
+  → [3] Module World Model Builder → Tín hiệu WorldModelUpdatedMsg
+  → [4] Module Planner → Tín hiệu PlanCreatedMsg
+  → [5] Module Policy Engine → Tín hiệu ActionSelectedMsg
+  → [6] Module Action Executor → Tín hiệu ExecutionResultMsg (Tương tác vật lý tới Compiler COPL)
+  → [7] Module Observer → Tín hiệu OutcomeObservedMsg
+  → [8] Module Diagnoser → Tín hiệu DiagnosisCompleteMsg (Kích hoạt khi gặp trạng thái Error)
+  → [9] Module Reflector → Tín hiệu ReflectionDoneMsg
+  → [10] Module Learner → Tín hiệu LessonExtractedMsg
+  → [11] Module Assimilator → Tín hiệu MemoryUpdatedMsg
+  → [12] Module Reporter → File Document Reports Outcome System
+  → Vòng luân hồi Loop Replay quay trở lại Node [4] hoặc Node [5] để kết thúc điều kiện (goal satisfied condition).
 ```
 
-## 5. Thể thức Bơm Trụ Cách Xử Lỗi Kẹt Chéo Các Hệ Module Nhau (Error Handling)
+## 5. Phương Lược Xử Lí Ngoại Lệ (Exception & Fallback Error Handling)
 
 ```
-Ngộ Nhỡ Tới Khúc Có Một Đứa Module Tự Đu Mình Ném Lỗi Nổ Bug exception gãy xương:
-  1. Hãy Chập Nén Lỗi Phích kèm Rổ Mốc Thời Điểm (module, input, stack trace) đánh log
-  2. Tung Còi Băm Tín Xâm Lan Lỗi Phím ErrorMsg cho Toàn Trạm bus → Kể cả Cả Dàn modules nắm tróp xững Cáo awareness
-  3. Bật Phích Bọc Khung Bền Hạ Độ Lún Trật Đi Fallback (Kiểu thoát lùi thân):
-     - Tại chóp Đao Phủ Executor: gồng sức gõ nếp lại Retry nhè nhẹ kéo co action ốm bé mọn hẹp lại 
-     - Mắt Y Lý Diagnoser: ngậm cục nghẹn đẩy mã mắm "unknown" dán mù root cause cắm nhăng cho xong
-     - Cục Chóp Policy: Gắp Rút chóp lá chắn phòng thủ Action nhét mình rút mai rùa (no-op im ngủ hay lòi điếc undo)
-     - Khối Trí Đạo Planner: Nện còng tay phế ngay cái điểm nhịp Blocked vào plan current step, rục rịch xách màng thử đi sang rẽ nhánh gõ the next kế tiếp
-  4. TUYỆT PHÁP Đóng Thép: Không bao giờ được phép để sập cái lọng vòng tua vĩnh viễn crash chết đứng của đại não agent loop.
+Khi Mạng Lưới Kiến Trúc Chặn Phát Lỗi Component Gặp Bug Hệ Thống (Module Exception Code Crash):
+  1. Module cô lập sinh Error Message File (module name, stack traces input, local exception block log file event tracing).
+  2. Broadcasting ErrorMsg tới Hệ Quản Trị Trung Tâm (Central Event Bus) → Nâng cao Cảnh giác Awareness Modules Blocks System.
+  3. Áp Dụng Chế Độ Trượt Thoát Lỗi Mềm Tử Hệ System (Fallback execution policy paths):
+     - Action Executor: Áp dụng Retry loop policy mechanism thắt hẹp cấu hình Action Limit.
+     - Diagnoser: Chuyển vị thông số Lỗi Mờ "Unknown" Root Cause Index Classification.
+     - Policy Engine: Chấp nhận lựa chọn Action an toàn Null Mode/ No-op operation / Undo revert git checkouts rollbacks logic block.
+     - Hành Trình Planner: Tích Chọn Block dấu X Cờ Đỏ đánh trượt (Mark Failed Status) và chuyển trỏ nhánh Point Plan node next check steps logic steps routing execution.
+  4. NGUYÊN LÝ THIẾT YẾU CỐT LÕI (INVARIANT RULE): Không Hệ Điểm Nào Trên Network Module Agent Loop Được Phép Dẫn Sự Cố Nút Cổ Chai Trỏ Sập Tịt Node Agent Loop Pipeline (Zero-Crash Agent System Protocol Tolerance Limit Policy Level Constraint).
 ```

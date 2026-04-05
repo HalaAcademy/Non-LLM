@@ -9,53 +9,53 @@
 
 GEAS (Goal-Experience Adaptive System) là một **AI Engineering Agent** được thiết kế theo hướng hậu-LLM:
 
-> **Thay vì sinh văn bản tự do, GEAS tự tính toán và chọn lựa hành động tối ưu dựa trên mục tiêu (goal), trạng thái dự án (state), bộ nhớ (memory) và chính sách (policy) — rồi học hỏi từ kết quả.**
+> **Thay vì sinh văn bản tự do, GEAS tự tính toán và chọn lựa hành động tối ưu dựa trên mục tiêu (goal), trạng thái dự án (state), bộ nhớ (memory) và chính sách (policy) — sau đó học hỏi từ kết quả thực thi.**
 
 Khác biệt giữa LLM truyền thống và GEAS:
 
 | Khía cạnh | LLM Truyền thống | GEAS |
 |---|---|---|
-| **Đơn vị học** | Token | Episode (mục tiêu + hành động + kết quả + bài học) |
-| **Mục tiêu tối ưu** | Đoán token tiếp theo | Chất lượng quyết định + kết quả thành công |
-| **Bộ nhớ** | Context window (mất sau session) | Cơ sở dữ liệu ngoài (bền vững theo năm tháng) |
-| **Hành vi** | Sinh văn bản (text) | Chọn hành động → chạy → quan sát → rút kinh nghiệm |
-| **Cải thiện** | Offline (fine-tuning) | Học hỏi liên tục (Online learning) qua mỗi dự án |
+| **Đơn vị học** | Token (Từ/Ký tự) | Episode (Mục tiêu + Hành động + Kết quả + Bài học) |
+| **Mục tiêu tối ưu** | Đoán token tiếp theo | Chất lượng quyết định + Số lượng kết quả thành công |
+| **Bộ nhớ** | Context window (Sẽ bị xóa sau mỗi phiên làm việc) | Cơ sở dữ liệu ngoài (Lưu trữ bền vững) |
+| **Hành vi** | Sinh văn bản (Text generation) | Chọn hành động → Thực thi → Quan sát → Rút kinh nghiệm |
+| **Cải thiện** | Cập nhật ngoại tuyến (Fine-tuning) | Học hỏi liên tục (Online learning) qua mỗi dự án |
 
 ## 2. Triết Lý Cốt Lõi
 
 ### "Trí thông minh không hoàn toàn nằm ở trọng số (weights)"
 
-Trí thông minh phân bổ qua:
+Trí thông minh của hệ thống được phân bổ qua:
 
 ```
 ┌──────────────────────────────────────────┐
 │           Trí Tuệ Của GEAS               │
 │                                          │
-│  20% Mô hình Lõi (neural weights)        │
-│       → hiểu ngôn ngữ, tính trừu tượng   │
+│  20% Mô hình Lõi (Neural weights)        │
+│       → Hiểu ngôn ngữ, phân tích ngữ nghĩa│
 │                                          │
-│  25% Hệ thống Bộ nhớ (external database) │
-│       → ghi bài học, quy trình, tác vụ   │
+│  25% Hệ thống Bộ nhớ (External database) │
+│       → Ghi nhận bài học, quy trình      │
 │                                          │
 │  20% Mô hình Thế giới (COPL SIR)         │
-│       → giữ trạng thái dự án, phụ thuộc  │
+│       → Lưu trữ trạng thái dự án         │
 │                                          │
 │  20% Bộ Lập Kế Hoạch + Chính sách        │
-│       → chiến lược, phân bổ công việc    │
+│       → Chiến lược, phân bổ công việc    │
 │                                          │
-│  15% Phản hồi từ Môi trường (compiler)   │
-│       → kết quả build, kết quả test      │
+│  15% Phản hồi từ Môi trường (Compiler)   │
+│       → Kết quả build, kết quả chạy test │
 └──────────────────────────────────────────┘
 ```
 
-## 3. Kiến Trúc 12 Module
+## 3. Kiến Trúc 12 Module Lõi
 
 ```
 ┌─────────────────────────────────────────────┐
-│              GEAS AGENT                      │
+│                 GEAS AGENT                   │
 │                                              │
 │  ┌─────────────┐    ┌──────────────────┐     │
-│  │ 1. Diễn dịch│    │ 2. Quản lý       │     │
+│  │ 1. Phân tích│    │ 2. Quản lý       │     │
 │  │ Mục tiêu    │◄──►│ Bộ Nhớ (Memory)  │     │
 │  └──────┬───────┘    └──────┬───────────┘     │
 │         │                   │                 │
@@ -79,11 +79,11 @@ Trí thông minh phân bổ qua:
 │          └──────┬───────┘                     │
 │         ┌───────┴────────┐                    │
 │  ┌──────▼──┐    ┌────────▼──────┐             │
-│  │8. Chẩn  │    │ 9. Động cơ    │             │
-│  │ đoán lỗi│───►│ Tự Suy Ngẫm   │             │
+│  │ 8. Chẩn │    │ 9. Động cơ    │             │
+│  │ đoán lỗi│───►│ Tự Đánh giá   │             │
 │  └─────────┘    └───────┬───────┘             │
 │                  ┌──────▼───────┐             │
-│                  │ 10. Rút tỉa  │             │
+│                  │ 10. Trích xuất│             │
 │                  │ Bài học      │             │
 │                  └──────┬───────┘             │
 │                  ┌──────▼───────┐             │
@@ -100,92 +100,93 @@ Trí thông minh phân bổ qua:
 ## 4. Mô hình Cốt lõi — Decision Transformer Lai
 
 ```
-Kiến trúc: Encoder-Decoder Hybrid (~150M tham số)
+Kiến trúc: Encoder-Decoder Hybrid (~150 triệu tham số)
 
 Đầu vào: [token_mục_tiêu, token_trạng_thái, token_bộ_nhớ, token_kế_hoạch]
                              ↓
-        Transformer Encoder (6 lớp, d=512, 8 heads)
+        Transformer Encoder (6 lớp, d=512, 8 attention heads)
                              ↓
-         Tính Đại Diện Chia Sẻ (Shared Representation)
+          Đại Lượng Biểu Diễn Dữ Liệu (Shared Representation)
                              ↓
        ┌─────────────────────┼─────────────────────┐
        ▼                     ▼                     ▼
-Đầu Hành động          Đầu Kết quả           Đầu Chẩn đoán
-(Action Head)        (Outcome Head)        (Diagnosis Head)
+Cổng Hành động         Cổng Kết quả          Cổng Chẩn đoán
+(Action Head)         (Outcome Head)        (Diagnosis Head)
 ```
 
-- **Đầu Hành động**: Chọn thao tác tiếp theo.
-- **Đầu Kết quả**: Dự đoán mức độ thành công.
-- **Đầu Chẩn đoán**: Phân loại nguyên nhân gốc rễ nếu bị code lỗi.
+- **Cổng Hành động**: Dự đoán và chọn thao tác tiếp theo.
+- **Cổng Kết quả**: Dự đoán xác suất hoàn thành luồng công việc.
+- **Cổng Chẩn đoán**: Phân loại theo cấu trúc lỗi (Root cause) nếu gặp lỗi mã.
 
 ## 5. Hệ thống Bộ nhớ 4 Tầng
 
-| Tầng | Lưu nội dung gì | Ở đâu | Khi nào dùng |
+| Tầng Phân Lớp | Cấu trúc Lưu trữ | Nền Tảng Lưu Trữ | Mục Đích Sử Dụng |
 |---|---|---|---|
-| **Working (Hiện hành)** | Task hiện tại, kế hoạch, lỗi | RAM | Trong phiên (session) |
-| **Episodic (Trải nghiệm)**| Chuỗi: trạng thái→action→kết quả | SQLite | Khi đụng task tương tự |
-| **Semantic (Ngữ nghĩa)**| Các bài học thiết kế tổng quát hóa | SQLite | Khi cần phương hướng giải quyết |
-| **Procedural (Quy trình)**| Chiến lược, cấu trúc workflow | SQLite | Khi cần chọn hướng đi mấu chốt |
+| **Working Memory (Hiện hành)** | Task hiện tại, dòng kế hoạch, lỗi hiện hữu | RAM Memory | Hỗ trợ trong cùng phiên làm việc (Session) |
+| **Episodic Memory (Trải nghiệm)**| Log Lịch sử: Trạng thái→Hành động→Kết quả | SQLite Database | Dò phân tích khi xuất hiện Task tương tự |
+| **Semantic Memory (Ngữ nghĩa)**| Kho Bài học, Quy luật đúc kết, Kiến trúc mã | SQLite Database | Tham chiếu kiến thức xử lý vấn đề tổng quát |
+| **Procedural Memory (Quy trình)**| Chu trình quy tắc vòng đời, Workflow | SQLite Database | Lựa chọn phương hướng chiến thuật cốt lõi |
 
-Vòng đời bộ nhớ:
-Vá xung đột thông qua chuẩn AGM. Dọn rác khi không dùng sau 6 tháng.
+Quy định vòng đời hệ bộ nhớ:
+Áp dụng tiêu chuẩn AGM (AGM Belief Revision) khi giải quyết xung đột thông tin. Thống nhất cơ chế dọn dẹp (Garbage collection) đối với metadata không tương tác lớn hơn 6 tháng.
 
-## 6. Hàm Mất Mát (Loss Function)
+## 6. Hàm Mất Mát Điểm Hồi Quy Bộ Trí Học (Loss Function)
 
 ```
-L_tổng = Σᵢ (1/(2σᵢ²)) L_cụmᵢ + log(σᵢ)
+L_total = Σᵢ (1/(2σᵢ²)) L_termᵢ + log(σᵢ)
 
-L_decision  = Behavioral cloning (Học theo mẫu)
-L_outcome   = Dự đoán mức thành công của lệnh
-L_diagnosis = Tìm nguyên nhân gốc
-L_lesson    = So sánh thang chất lượng bài học
-L_adapt     = Nhạy bén qua Fast adaptation MAML
+Mô hình 5 cấu phần riêng biệt:
+L_decision  = Đối soát học qua mẫu (Behavioral Cloning Loss)
+L_outcome   = Hàm đánh giá giá trị thành bại của lệnh (Outcome Prediction)
+L_diagnosis = Tìm nguyên nhân gốc chẩn đoán phân rã cấu trúc (Root Cause Diagnosis)
+L_lesson    = Thang đo lường tinh chỉnh bài học rút ra (Lesson Quality Contrastive)
+L_adapt     = Cơ chế học siêu thích nghi nhạy bén (Fast Adaptation MAML loss)
 ```
-*Chi tiết: `docs/geas/03_loss_functions.md`*
+*Tài liệu tham chiếu chi tiết: `docs/geas/03_loss_functions.md`*
 
-## 7. Cách GEAS Vận hành Runtime
+## 7. Quy Trình Hoạt Động (Runtime Pipeline)
 
-1. **Hiểu (Understand)**: Phân tích mục tiêu, tra bộ nhớ định vị trạng thái.
-2. **Lên Kế hoạch (Plan)**: Rải phân cấp kế hoạch.
-3. **Hành động (Act)**: Trực tiếp quăng lệnh xuống COPL xử lý code.
-4. **Quan sát (Observe)**: Bắt tin nhắn báo lỗi hoặc thành công từ Compiler.
-5. **Học hỏi (Learn - Nếu thất bại)**: Chẩn đoán, suy ngẫm, rút ra bài học rồi tích vào bộ nhớ. Replay lại kế hoạch.
+1. **Phân tích (Understand)**: Bóc xuất Mục tiêu (Goal parsed), truy vấn cấu trúc thông tin từ Bộ Nhớ định hình Trạng thái (Current state).
+2. **Lên Kế hoạch (Plan)**: Khởi tạo lộ trình đa tầng (Multi-level Plan step generation).
+3. **Thực thi (Act)**: Kích phát giao diện Action để khởi lệnh thao tác trên nền code COPL.
+4. **Quan sát (Observe)**: Phân tích log chuẩn Output ghi nhận thông điệp Diagnostic/Result từ Compiler.
+5. **Học hỏi (Learn - Nhanh chóng khôi phục khi Fail)**: Mở Module chẩn đoán phân loại trạng thái, suy ngẫm lỗi (Reflection), trích cặn bài học và đưa vào Memory Database. Auto vòng lại thiết đặt lại thông lộ (Replan).
 
-## 8. Mối liên hệ với COPL
+## 8. Mối liên hệ với Hạ Tầng COPL
 
-GEAS điều khiển và nhờ COPL compiler cung cấp:
-- Đọc Sơ đồ SIR sinh ra World Model.
-- Đọc bảng Diagnostics để Chẩn đoán bắt lỗi.
-- Đọc Artifact cards để Cấy thêm vào Memory Manager.
-- Đọc Trace matrix để Planner dò lọt khe Test.
+Cơ chế điều khiển GEAS phụ thuộc COPL cung ứng:
+- Đọc xuất Sơ đồ SIR nhằm mô phỏng mạng World Model.
+- Bắt lấy Diagnostic API để cung ứng siêu dữ liệu cho mô đun Chẩn đoán Lỗi.
+- Tái sử dụng Code Artifact Cards để làm nguyên liệu nhồi nhét Cấu trúc Memory.
+- Duyệt lược biểu Trace Matrix hỗ trợ Module Planner lập chiến lược phủ Test.
 
-## 9. Bản đồ Tài liệu GEAS
+## 9. Cấu Trúc Khung Tài Liệu GEAS
 
 ```
 docs/geas/
-├── 00_overview.md               ← BẠN ĐANG ĐỌC FILE NÀY
-├── 01_architecture.md           ← Tơ Đồ 12 modules rành mạch
-├── 02_core_model.md             ← Trụ Não Model architecture + embeddings
-├── 03_loss_functions.md         ← Hàm tính mất mát (5 loss terms)
-├── 04_memory_system.md          ← Chi Giai 4 chóp tầng phân cõi bộ nhớ memory
-├── 05_protocol.md               ← Cáp giao tiếp giữa các mô-đun Inter-module
-├── 06_data_strategy.md          ← Chiến lược mồi Data bootstrapping DAgger
-├── 07_training_pipeline.md      ← Móc Phễu huấn luyện 6 phase training
-├── 08_runtime_pipeline.md       ← Trục lặp Runtime loop thực tiễn
-├── 09_branch_memory.md          ← Xử lý phân nhánh Nhớ branch-aware memory
-└── 10_evaluation.md             ← Chuẩn mốc đánh giá Benchmarks
+├── 00_overview.md               ← FILE HIỆN TẠI ĐANG DUYỆT (TỔNG QUAN)
+├── 01_architecture.md           ← Tầng kiến trúc quy mô 12 mô-đun chi tiết
+├── 02_core_model.md             ← Trọng tâm Mô hình Model Core Architecture & Trạm Embeddings
+├── 03_loss_functions.md         ← Lý thuyết thiết lập hàm Mất Mát Toán học
+├── 04_memory_system.md          ← Chi tiết cấu hình Database 4 tầng Memory Layer
+├── 05_protocol.md               ← Giao thức tin nhắn (Message Protocol)
+├── 06_data_strategy.md          ← Chiến lược Data Bootstrap & kỹ thuật DAgger
+├── 07_training_pipeline.md      ← Khái lược 6 phân giai đoạn huấn luyện Training Cycle
+├── 08_runtime_pipeline.md       ← Sơ đồ luồng Agent Runtime vòng lặp tác vụ
+├── 09_branch_memory.md          ← Kiến trúc bộ Nhớ chia nhánh Branch-aware memory routing
+└── 10_evaluation.md             ← Chế tài mảng chấm đánh giá chất lượng hệ theo Benchmark
 ```
 
-## 10. Kho Từ Vựng
+## 10. Kho Từ Vựng Giao Thức (Vocabulary)
 
-| Định danh | Giải nghĩa |
+| Định danh | Giải nghĩa Kỹ thuật Đại chúng |
 |---|---|
-| **Episode** | Khối kinh nghiệm: mục tiêu, tình hình, thao tác, kết quả, bài học. |
-| **Trajectory** | Một chuỗi episodes cho chung 1 task. |
-| **Lesson** | Bài học tóm chứa Nguyên nhân do đâu, xử trí cách nào. |
-| **Policy** | Chính sách xác định hành vi chọn bước kế tiếp. |
-| **World Model**| Khối tái hiện trạng thái sinh động mã SIR của dự án. |
-| **EWC** | Cơ chế chống lãng quên (Catastrophic forgetting). |
-| **AGM** | Định luật dỡ bỏ xung đột cấn cá của bộ nhớ niềm tin. |
-| **DAgger** | Mạng nhồi đẩy luyện data (Dataset Aggregation). |
-| **MAML** | Đo lường bắt xu hướng nhanh Model-Agnostic Meta-Learning. |
+| **Episode** | Bản ghi Cấu trúc đơn trị: Trạng thái, Mục tiêu, Hành động chốt, Kết Quả Báo cáo, Bài Học Đi kèm. |
+| **Trajectory** | Lộ trình theo tuần tự một cụm Episodes gắn chung cho 1 Session hay Task ID. |
+| **Lesson** | Gói quy tắc dữ liệu đóng khối Structured Data (Chứa Cội Rễ căn nguyên lỗi và cách Fixing). |
+| **Policy** | Chính sách đưa thuật toán đánh giá Action phù hợp ở bước tiếp sau của Model. |
+| **World Model**| Khối Abstract Mạng Trạng Thái Dự Án dựng lại từ bản dịch SIR Code Compiler. |
+| **EWC** | Giới luật Cân Bằng Bảo Trì Trọng lượng (Elastic Weight Consolidation) — cản màng xóa dữ liệu mô hình. |
+| **AGM** | Thuật toán xử lý Xung đột Belief Networks (AGM Belief Revision). |
+| **DAgger** | Nhóm thuật toán tạo hệ Training Set giả lập thông minh (Dataset Aggregation). |
+| **MAML** | Khung tư duy Tự Học Không Trói Hệ Mô hình Học (Model-Agnostic Meta-Learning). |
