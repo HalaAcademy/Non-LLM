@@ -1,56 +1,55 @@
-# Cortex Integration Contracts
-## 5 Formal Interface Contracts — Fixes X1-X5
+# Các Hợp đồng Tích hợp của Cortex (Integration Contracts)
+## 5 Giao thức Ràng buộc Tiêu chuẩn — Hỗ trợ tinh chỉnh X1-X5
 
-> **Status**: Draft | **Last Updated**: 2026-04-03
+> **Trạng thái**: Bản nháp | **Cập nhật lần cuối**: 2026-04-03
 
 ---
 
-## 1. Why Contracts
+## 1. Vai trò của Các Hợp đồng Tích hợp
 
-COPL develops before GEAS. Contracts guarantee they will integrate:
+Do COPL được định tuyến phát triển trước GEAS, các Hợp đồng tích hợp đóng vai trò nhằm bảo toàn tuyệt đối 100% khả năng tương thích của hai nền tảng cốt lõi:
 
+```mermaid
+flowchart LR
+    COPL[Trình Biên Dịch COPL\nProvider] -- "Cấu trúc 5 Hợp đồng Tích hợp\n(Validated & Checked by Mock Agent)" --> GEAS[World Model AI GEAS\nConsumer]
 ```
-COPL (provider) ──── Contracts ──── GEAS (consumer)
-                     5 interfaces
-                     validated by Mock Agent in CI
-```
 
-## 2. Contract #1: SIR Query Interface
+## 2. Hợp đồng #1: Giao thức Truy vấn SIR (SIR Query Interface)
 
-**Provider**: COPL Compiler | **Consumer**: GEAS World Model Builder
+**Dịch vụ Cung cấp (Provider)**: COPL Compiler | **Đội Nhận (Consumer)**: Bộ khởi tạo GEAS World Model
 
 ```python
 class SIRQueryContract:
-    """GEAS World Model calls these methods. COPL must implement."""
+    """Các hàm khai báo bắt buộc mà hệ thống COPL phải hỗ trợ đầy đủ cho GEAS World Model gọi cấu trúc truy xuất dữ liệu."""
     
     def get_workspace(self) -> SIRWorkspace:
-        """Return full SIR representation."""
+        """Trả về toàn bộ định dạng chuẩn của lược đồ biểu diễn dạng SIR nội hàm."""
     
     def get_module(self, name: str) -> SIRModule:
-        """Return SIR for a single module."""
+        """Trả về đồ thị SIR cụ thể đối với một module theo định kiểu quy ước trước."""
     
     def get_modules_by_status(self, status: str) -> list[SIRModule]:
-        """All modules with given status."""
+        """Sàng lọc danh mục tất cả module đang thụ hưởng một trường Status định dạng nào đó."""
     
     def get_dependencies(self, module: str) -> list[DependencyEdge]:
-        """Direct dependencies of a module."""
+        """Dò trích xuất toàn bộ luồng ràng buộc phụ thuộc trực tiếp của một module cụ thể."""
     
     def get_trace_coverage(self) -> TraceMatrix:
-        """Full trace matrix with coverage percentages."""
+        """Kết xuất cấu hình Full Trace Matrix bao hàm tất cả tham số %. của Coverage."""
     
     def get_unimplemented_requirements(self) -> list[SIRRequirement]:
-        """Requirements without code trace."""
+        """Tập hợp những Yêu cầu thiết kế (Requirements) hiện đang rỗng, thiếu Code Trace kết nối thực thi."""
     
     def get_untested_requirements(self) -> list[SIRRequirement]:
-        """Requirements without test coverage."""
+        """Liệt kê các Yêu cầu thiết kế chưa được phủ Kiểm thử (Test coverage)."""
     
     def get_module_risk(self, module: str) -> float:
-        """Risk score 0.0-1.0."""
+        """Thống kê Chỉ số Rủi ro của Module theo hệ đánh giá rủi ro từ 0.0 - 1.0 ."""
     
     def search(self, query: str) -> list[SIRModule]:
-        """Full-text search across module names and purposes."""
+        """Tìm kiếm chuỗi phân mảnh nâng cao xuyên suốt tất cả Name/Purpose của Module thuộc hệ thống dự án."""
 
-# Validation test
+# Unit Test Kiểm Chứng (Validation test)
 def test_sir_query_contract(compiler, test_project):
     result = compiler.compile(test_project)
     query = SIRQueryContract(result.sir)
@@ -69,26 +68,26 @@ def test_sir_query_contract(compiler, test_project):
     assert 0.0 <= coverage.computed.overall_coverage <= 1.0
 ```
 
-## 3. Contract #2: Diagnostic Output Format
+## 3. Hợp đồng #2: Định dạng Cấu trúc Chẩn Đoán Lỗi (Diagnostic Output Format)
 
-**Provider**: COPL Compiler | **Consumer**: GEAS Diagnoser
+**Dịch vụ Cung cấp (Provider)**: COPL Compiler | **Đội Nhận (Consumer)**: Cấp chẩn đoán lỗi GEAS (GEAS Diagnoser)
 
 ```python
 @dataclass
 class DiagnosticContract:
-    """Every diagnostic MUST have these fields. No exceptions."""
+    """Thiết lập cấu trúc đặc tả 100% cho mọi kết xuất Error Diagnostic, hệ thống không chấp nhận dữ liệu ngoại lệ."""
     
-    category: str      # "syntax"|"semantic"|"profile"|"lowering"|"architecture"
-    severity: str      # "error"|"warning"|"info"
-    code: str          # Stable code: "E001", "W023"
-    message: str       # Human-readable description
-    file: str          # File path
-    line: int          # Line number (1-indexed)
-    column: int        # Column number (1-indexed)
-    suggested_fix: str # Optional hint for fixing
-    related: list[str] # Related entities (REQ-xxx, module.name)
+    category: str      # Phân chia: "syntax" (Cú pháp) |"semantic" (Ngữ nghĩa) |"profile"|"lowering"|"architecture"
+    severity: str      # Cấp độ: "error"|"warning"|"info"
+    code: str          # Mã quy chuẩn mã code theo hệ trục (Ví dụ: "E001", "W023")
+    message: str       # Khối text dạng Human-readable có cấu trúc chuẩn chẩn đoán
+    file: str          # Thông tin vị trí lưu File Path
+    line: int          # Dòng số lượng dòng truyển chẩn (1-indexed)
+    column: int        # Cột (1-indexed)
+    suggested_fix: str # Dữ liệu khuyên dùng hỗ trợ AI Agent xử lý bắt lỗi sửa code
+    related: list[str] # Điểm tham chiếu dây chuyền (Tên REQ-xxx, cấu trúc tên Function module.name)
 
-# Validation test
+# Unit Test Kiểm Chứng (Validation test)
 def test_diagnostic_contract(compiler):
     result = compiler.compile("test_data/errors/type_mismatch.copl")
     assert not result.success
@@ -103,13 +102,13 @@ def test_diagnostic_contract(compiler):
         assert diag.column > 0
 ```
 
-## 4. Contract #3: Artifact Output Format
+## 4. Hợp đồng #3: Giao thức Biểu diễn Artifact Format (Artifact Output Format)
 
-**Provider**: COPL Artifact Engine | **Consumer**: GEAS Memory Manager
+**Dịch vụ Cung cấp (Provider)**: COPL Artifact Engine | **Đội Nhận (Consumer)**: Khối Ghi nhớ thông tin của GEAS (GEAS Memory Manager)
 
 ```python
 class ArtifactContract:
-    """Artifact schemas GEAS depends on. Changes require version bump."""
+    """Khuôn dạng mấu chốt Artifacts schema. Bất cứ lần điều chỉnh cấu trúc nào buộc cập nhật chuỗi Version Bump."""
     
     SUMMARY_CARD_REQUIRED_FIELDS = [
         "module_name", "purpose", "owner", "status", "profile",
@@ -129,14 +128,14 @@ class ArtifactContract:
         "summary.overall_coverage"
     ]
 
-# Validation test
+# Unit Test Kiểm Chứng (Validation test)
 def test_artifact_contract(compiler, test_project):
     result = compiler.compile(test_project)
     artifacts = result.artifacts
     
     for card in artifacts.summary_cards:
         for field in ArtifactContract.SUMMARY_CARD_REQUIRED_FIELDS:
-            assert get_nested(card, field) is not None, f"Missing field: {field}"
+            assert get_nested(card, field) is not None, f"Missing component field: {field}"
     
     graph = artifacts.dependency_graph
     assert len(graph["nodes"]) > 0
@@ -146,37 +145,37 @@ def test_artifact_contract(compiler, test_project):
     assert 0.0 <= matrix["summary"]["overall_coverage"] <= 1.0
 ```
 
-## 5. Contract #4: COPL Action Interface
+## 5. Hợp đồng #4: Lệnh Tương Tác COPL Action (COPL Action Interface)
 
-**Provider**: COPL CLI/API | **Consumer**: GEAS Action Executor
+**Dịch vụ Cung cấp (Provider)**: COPL CLI/API | **Đội Nhận (Consumer)**: GEAS Action Executor
 
 ```python
 class ActionContract:
-    """GEAS executor sends these commands. COPL must accept them."""
+    """Các mệnh lệnh điều khiển của GEAS Executor đưa ra và bắt buộc giao diện COPL API phải thực thi chính thức."""
     
     def create_module(self, name: str, content: str) -> ActionResult:
-        """Create new .copl file."""
+        """Cấu trúc Cấp Phép Tạo Lập tệp code định tuyến kiểu .copl"""
     
     def modify_module(self, name: str, patch: str) -> ActionResult:
-        """Modify existing .copl file."""
+        """Cấp quyền bổ sung hoặc điều chỉnh cấu trúc vào bên trong tệp Code .copl hiện tại."""
     
     def delete_module(self, name: str) -> ActionResult:
-        """Delete .copl file."""
+        """Xoá bỏ kết cấu luồng tệp."""
     
     def build(self, target: str = "c") -> BuildResult:
-        """Full build: parse → check → codegen."""
+        """Kịch bản Toàn Diện Build Code: Parse dữ kiện → Check toàn hệ → Target Code Generation."""
     
     def check(self) -> CheckResult:
-        """Check only: parse → type check → effect check. No codegen."""
+        """Chi Trình Verify (Không nhả target): Chỉ Parse, chạy luồng Type Check & Effect Check."""
     
     def run_tests(self, suite: str = "all") -> TestResult:
-        """Run test suite."""
+        """Chạy mảng cấu hình cấu trúc Test Framework."""
     
     def emit_artifacts(self) -> ArtifactResult:
-        """Generate AI bundle."""
+        """Kích phát cơ chế trích xuất AI bundle package toàn dự án."""
     
     def get_sir(self) -> SIRWorkspace:
-        """Get current SIR."""
+        """Trả về đồ thị luồng Trạng thái SIR."""
 
 @dataclass
 class BuildResult:
@@ -187,7 +186,7 @@ class BuildResult:
     artifacts: ArtifactBundle
     duration_ms: int
 
-# Validation test
+# Unit Test Kiểm Chứng (Validation test)
 def test_action_contract():
     api = ActionContract(workspace="test/")
     
@@ -203,34 +202,34 @@ def test_action_contract():
     assert isinstance(r3.success, bool)
 ```
 
-## 6. Contract #5: Episode Data Schema
+## 6. Hợp đồng #5: Mô Hình Biểu diễn Tập Luyện của AI Dạng Lớp Lưới (Episode Data Schema)
 
-**Provider**: COPL compile results | **Consumer**: GEAS training pipeline
+**Dịch vụ Cung cấp (Provider)**: COPL Output Results | **Đội Nhận (Consumer)**: Tầng Huấn luyện của luồng Pipeline Training GEAS.
 
 ```python
 @dataclass
 class EpisodeSchemaContract:
-    """Schema for training episodes. Must be extractable from compile results."""
+    """Quy chuẩn toàn diện để chuyển giao Episode phục vụ AI Training Machine."""
     
-    # Before action
+    # Số dọ liệu Trước Vòng Khớp Lệnh (Before action)
     state_modules: int
     state_functions: int  
     state_errors: int
     state_trace_coverage: float
     state_build_status: str
     
-    # Action taken
+    # Biểu Trạng Lệnh Thực thi (Action taken)
     action_type: str
     action_args: dict
     
-    # After action
+    # Cục Diện Rủi ro / Thay đổi Hậu thực Thi (After action)
     outcome_success: bool
     outcome_class: str
     new_errors: int
     resolved_errors: int
     new_trace_coverage: float
 
-# Validation test
+# Unit Test Kiểm Chứng Schema
 def test_episode_schema(compiler, test_project):
     sir_before = compiler.get_sir()
     state_before = extract_state(sir_before)
@@ -256,17 +255,17 @@ def test_episode_schema(compiler, test_project):
         new_trace_coverage=state_after.trace_coverage
     )
     
-    # Must be JSON serializable
+    # Luôn luôn Phải tuân theo định dạng JSON Serialization
     json_str = json.dumps(asdict(episode))
     roundtrip = EpisodeSchemaContract(**json.loads(json_str))
     assert roundtrip == episode
 ```
 
-## 7. CI Integration
+## 7. Quy trình Phê chuẩn CI Hệ thống Tích hợp Tự động (CI Integration)
 
 ```yaml
 # .github/workflows/contract_validation.yml
-name: GEAS Contract Validation
+name: Tích hợp Giao ước Kiến trúc Phân vùng GEAS
 on: [push, pull_request]
 
 jobs:
@@ -274,18 +273,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Build COPL compiler
+      - name: Build hệ lõi trình biên dịch COPL compiler
         run: make copc
-      - name: Run Contract Tests
+      - name: Auto-Test Hợp đồng Kiến Trúc 
         run: |
           pytest tests/contracts/test_sir_query.py
           pytest tests/contracts/test_diagnostics.py
           pytest tests/contracts/test_artifacts.py
           pytest tests/contracts/test_actions.py
           pytest tests/contracts/test_episode.py
-      - name: Run Mock GEAS Agent
+      - name: Run Trạng Thái Tác Nhân Giả Lập Agent (Mock GEAS Agent)
         run: pytest tests/contracts/test_mock_agent.py
-      - name: Fail on contract break
+      - name: Fail an toàn trên lỗi Cấu Hình Khớp Luồng Contract (Safe Error Catch Override)
         if: failure()
-        run: echo "🔴 GEAS CONTRACTS BROKEN — FIX BEFORE MERGE"
+        run: echo "🔴 RỦI RO GEAS HỢP ĐỒNG KHÔNG TƯƠNG THÍCH — BUỘC XỬ LÝ KHẨN CẤP TRƯỚC KHI MERGE"
 ```
