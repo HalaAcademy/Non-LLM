@@ -11,9 +11,9 @@ Lowering = cơ chế để thể hiện (express) các khối logic **vận hàn
 
 ```mermaid
 flowchart TD
-    A["COPL Source (.copl)"] -->|"Parse → AST → Type Check → Effect Check"| B["SIR\n(ngữ nghĩa trung lập platform-agnostic)"]
-    B -->|"Dịch khối Lowering theo Thiết bị"| C["TIR\n(Target-specific IR)"]
-    C -->|"Sinh mã code Codegen"| D["Target Source\n(C, Rust, Go, Python)"]
+    A["COPL Source (.copl)"] -->|"Parse → AST → Type Check → Effect Check"| B["SIR<br>(ngữ nghĩa trung lập platform-agnostic)"]
+    B -->|"Dịch khối Lowering theo Thiết bị"| C["TIR<br>(Target-specific IR)"]
+    C -->|"Sinh mã code Codegen"| D["Target Source<br>(C, Rust, Go, Python)"]
 ```
 
 ## 2. Cú pháp khối Lower

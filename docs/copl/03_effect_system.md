@@ -36,17 +36,17 @@ Effect = { pure, io, heap, network, fs, interrupt, register, panic, async }
 
 ```mermaid
 flowchart BT
-    PURE["pure\n(Thuần túy)"] --> EMB["embedded/kernel effects\n(Hiệu ứng Nhân OS / Nhúng)"]
+    PURE["pure<br>(Thuần túy)"] --> EMB["embedded/kernel effects<br>(Hiệu ứng Nhân OS / Nhúng)"]
     EMB --> REG["register"]
     EMB --> INT["interrupt"]
     EMB --> PANIC["panic"]
-    REG & INT & PANIC --> BACK["backend effects\n(Hiệu ứng Backend)"]
+    REG & INT & PANIC --> BACK["backend effects<br>(Hiệu ứng Backend)"]
     BACK --> IO["io"]
     BACK --> HEAP["heap"]
     BACK --> ASYNC["async"]
     IO --> NET["network"]
     IO --> FS["fs"]
-    NET & FS & HEAP & ASYNC --> ALL["ALL\n(Tất cả - scripting)"]
+    NET & FS & HEAP & ASYNC --> ALL["ALL<br>(Tất cả - scripting)"]
 ```
 
 `pure` ⊂ Mọi bộ hiệu ứng. Hàm "pure" có thể được dùng trên bất kỳ đâu.
