@@ -82,20 +82,14 @@ Trình Compiler chỉ cần đọc file văn phạm văn bản code trên và:
 
 ## 4. Kiến Trúc Tổng Thể
 
-```
-COPL Source Code nguồn (.copl)
-    ↓ Dịch Lexer
-Cuộn Dòng Token Stream
-    ↓ Dựng gốc Parser
-Khối Cây Cấu Trúc AST (Abstract Syntax Tree)
-    ↓ Lưới Kiểm Phân Tích Logic Semantic Analysis (type check, effect check, profile check)
-Kho Định Lượng SIR (Biểu đồ Tầng Trung gian Hệ Ngữ nghĩa)
-    ↓ Đúc Khuôn Khóa Trọng tâm Lowering
-Kho Định Lượng Đích Thiết bị TIR (C-TIR, Rust-TIR, Go-TIR, Python-TIR)
-    ↓ Cơ quan Sinh Mã Lệnh Codegen
-Source Code dịch thành mã máy/mã ngôn ngữ C, Rust... (C, Rust, Go, Python)
-    ↓ Khơi dòng + Mở động cơ Phân Phát Artifact Engine
-Khối gói AI Bundle, Bộ thẻ Summary Cards, Bảng chéo Trace Matrix, Cây Cột Dependency Graph
+```mermaid
+flowchart TD
+    A["COPL Source Code nguồn (.copl)"] -->|"Dịch Lexer"| B["Cuộn Dòng Token Stream"]
+    B -->|"Dựng gốc Parser"| C["Khối Cây Cấu Trúc AST"]
+    C -->|"Semantic Analysis"| D["Kho Định Lượng SIR"]
+    D -->|"Đúc Khuôn Lowering"| E["TIR (C-TIR, Rust-TIR, Go-TIR, Python-TIR)"]
+    E -->|"Sinh Mã Lệnh Codegen"| F["Source Code (C, Rust, Go, Python)"]
+    F -->|"Artifact Engine"| G["AI Bundle, Summary Cards,\nTrace Matrix, Dependency Graph"]
 ```
 
 ## 5. Hệ Thống Các Khối Rào Chắn Profile System

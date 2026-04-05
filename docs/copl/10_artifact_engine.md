@@ -15,7 +15,7 @@
 | Tình hình Khối lượng việc Workitem Status | JSON | Đẩy lên Dashboard, Công cụ PM Tools | Theo sát tiến độ gõ code dự án |
 | Báo cáo đánh giá Mức nguy hiểm Risk Report | JSON/MD | Cho Trưởng nhóm Team Lead, AI Agent | Đong đếm và Cáo báo thẩm định Risk assessment |
 | Báo cáo Tổng quan Kiến trúc Architecture Report | Markdown | Cho Con người đọc | Thư viện tài liệu miêu tả kết cấu kiến trúc dự án |
-| Thùng Rương Phân Bón AI Bundle | Nhóm Directory | Dâng tặng riêng AI GEAS Agent | Gom trọn vẹn tất thảy những gì AI cần xơi để thấu hiểu dự án |
+| Thùng Rương Phân Bón AI Bundle | Nhóm Directory | Dâng tặng riêng AI Agent | Gom trọn vẹn tất thảy những gì AI cần xơi để thấu hiểu dự án |
 
 ## 2. Bố cục Mẫu cho Bảng tóm tắt nội dung Module (Summary Card Schema)
 
@@ -124,20 +124,20 @@
 
 ## 5. Tổ Chức Thùng Lưu Trữ Kiến Thức Bơm Cho AI (AI Bundle Directory)
 
-```
-ai_bundle/
-├── manifest.json           ← Hồ sơ thẻ định danh mô tả metadata tổng kho bundle
-├── summary_cards/
-│   ├── mcal.can.json
-│   ├── bsw.canif.json
-│   ├── services.vcu.json
-│   └── ... (Sẽ xả nén riêng rẽ từng tờ biên lai cho mỗi một module)
-├── dependency_graph.json
-├── trace_matrix.json
-├── workitem_status.json
-├── risk_report.json
-├── project_summary.json    ← Đúc kết báo cáo Bệnh Viện Trả Sức khỏe Sơ Lược Tình hình tổng thể cả Project health
-└── episode_schema.json     ← Sổ sách cẩm nang ghi luật cách nào để tạo dựng kịch bản chia giai đoạn chia tasks làm việc AI qua project này (episodes)
+```yaml
+ai_bundle/:
+  manifest.json:           # Hồ sơ thẻ định danh mô tả metadata tổng kho bundle
+  summary_cards/:
+    - mcal.can.json
+    - bsw.canif.json
+    - services.vcu.json
+    - ...                  # Sẽ xả nén riêng rẽ từng tờ biên lai cho mỗi một module
+  dependency_graph.json:   # Sơ đồ phụ thuộc
+  trace_matrix.json:       # Ma trận dấu vết
+  workitem_status.json:    # Trạng thái công việc
+  risk_report.json:        # Báo cáo rủi ro
+  project_summary.json:    # Báo cáo sức khỏe tổng thể Project health
+  episode_schema.json:     # Sổ sách luật tạo dựng kịch bản chia tasks
 ```
 
 Nội soi `manifest.json`:

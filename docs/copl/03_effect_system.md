@@ -34,36 +34,32 @@ Effect = { pure, io, heap, network, fs, interrupt, register, panic, async }
 
 ### 2.2 Đồ thị Hệ thống phân cấp Hiệu ứng (Effect Lattice)
 
-```
-                    ALL (Tất cả - scripting)
-                  /   |   |   \
-               io   heap  async  ...
-              / \     |
-          network  fs  |
-              \   |   /
-               backend effects (Hiệu ứng Backend)
-              
-          register  interrupt  panic
-              \       |       /
-               embedded/kernel effects (Hiệu ứng Nhân OS / Nhúng)
-                      |
-                    pure (Thuần túy)
+```mermaid
+flowchart BT
+    PURE["pure\n(Thuần túy)"] --> EMB["embedded/kernel effects\n(Hiệu ứng Nhân OS / Nhúng)"]
+    EMB --> REG["register"]
+    EMB --> INT["interrupt"]
+    EMB --> PANIC["panic"]
+    REG & INT & PANIC --> BACK["backend effects\n(Hiệu ứng Backend)"]
+    BACK --> IO["io"]
+    BACK --> HEAP["heap"]
+    BACK --> ASYNC["async"]
+    IO --> NET["network"]
+    IO --> FS["fs"]
+    NET & FS & HEAP & ASYNC --> ALL["ALL\n(Tất cả - scripting)"]
 ```
 
 `pure` ⊂ Mọi bộ hiệu ứng. Hàm "pure" có thể được dùng trên bất kỳ đâu.
 
 ## 3. Ma trận Khả năng Tương thích theo Profile
 
-```
-                  pure  io  heap  network  fs  interrupt  register  panic  async
-  ┌─────────────┬─────┬────┬──────┬─────────┬────┬───────────┬──────────┬───────┬───────┐
-  │ portable    │  ✅  │ ❌ │  ❌  │   ❌    │ ❌ │    ❌     │    ❌    │  ❌   │  ❌   │
-  │ embedded    │  ✅  │ ❌ │  ❌  │   ❌    │ ❌ │    ✅     │    ✅    │  ❌   │  ❌   │
-  │ kernel      │  ✅  │ ❌ │  ❌  │   ❌    │ ❌ │    ✅     │    ✅    │  ✅   │  ❌   │
-  │ backend     │  ✅  │ ✅ │  ✅  │   ✅    │ ✅ │    ❌     │    ❌    │  ✅   │  ✅   │
-  │ scripting   │  ✅  │ ✅ │  ✅  │   ✅    │ ✅ │    ✅     │    ✅    │  ✅   │  ✅   │
-  └─────────────┴─────┴────┴──────┴─────────┴────┴───────────┴──────────┴───────┴───────┘
-```
+| Profile | pure | io | heap | network | fs | interrupt | register | panic | async |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **portable** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **embedded** | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ | ❌ | ❌ |
+| **kernel** | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ | ❌ |
+| **backend** | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ |
+| **scripting** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 
 ## 4. Các quy tắc Suy luận Hiệu ứng
 

@@ -9,14 +9,11 @@
 
 Lowering = cơ chế để thể hiện (express) các khối logic **vận hành chuyên biệt thao tác cấu hình theo phần cứng (target-specific operations)** — những thứ vốn KHÔNG THỂ biểu diễn nổi trên nền tảng lập trình logic trung tính của COPL. Mục đích sử dụng lớn nhất: truy xuất tương tác giao thức phần cứng qua thanh ghi (hardware register access) trên các hệ thống nhúng (embedded systems).
 
-```
-COPL Source (.copl)
-    ↓ Parse → AST → Type Check → Effect Check
-SIR (ngữ nghĩa trung lập phi thiết bị/phi nền tảng platform-agnostic)
-    ↓ Dịch khối Lowering theo Thiết bị (Target Lowering)
-TIR (Target-specific IR) (IR của Hệ thống Môi trường lập trình đặc thù)
-    ↓ Sinh mã code (Codegen)
-Target Source (C, Rust, Go, Python)
+```mermaid
+flowchart TD
+    A["COPL Source (.copl)"] -->|"Parse → AST → Type Check → Effect Check"| B["SIR\n(ngữ nghĩa trung lập platform-agnostic)"]
+    B -->|"Dịch khối Lowering theo Thiết bị"| C["TIR\n(Target-specific IR)"]
+    C -->|"Sinh mã code Codegen"| D["Target Source\n(C, Rust, Go, Python)"]
 ```
 
 ## 2. Cú pháp khối Lower
@@ -162,23 +159,23 @@ lower get_primask() -> U32 @target c {
 
 ### 4.1 Cấu trúc của TIR
 
-```
-TIR-C
-├── includes: list[str]          # "#include <stdint.h>", v.v.
-├── type_defs: list[TIRTypeDef]  # các biến khai khối struct/enum/typedef
-├── function_decls: list[TIRFunctionDecl]
-├── function_defs: list[TIRFunctionDef]
-├── global_vars: list[TIRGlobalVar]
-└── register_defs: list[TIRRegisterDef]
+```yaml
+TIR-C:
+  includes: list[str]          # "#include <stdint.h>", v.v.
+  type_defs: list[TIRTypeDef]  # các biến khai khối struct/enum/typedef
+  function_decls: list[TIRFunctionDecl]
+  function_defs: list[TIRFunctionDef]
+  global_vars: list[TIRGlobalVar]
+  register_defs: list[TIRRegisterDef]
 
-TIRFunctionDef
-├── name: str
-├── return_type: CType
-├── params: list[(str, CType)]
-├── body: list[TIRStatement]
-├── is_static: bool
-├── is_inline: bool
-└── attributes: list[str]       # "__attribute__((weak))", v.v.
+TIRFunctionDef:
+  name: str
+  return_type: CType
+  params: list[(str, CType)]
+  body: list[TIRStatement]
+  is_static: bool
+  is_inline: bool
+  attributes: list[str]       # "__attribute__((weak))", v.v.
 ```
 
 ### 4.2 Bảng Chuyển đổi Kiểu Type Mapping: COPL → C

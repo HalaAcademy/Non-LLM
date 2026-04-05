@@ -7,41 +7,33 @@
 
 ## 1. Phương Thức Vận Động (Pipeline) của Compiler
 
-```
-                    COPL Compiler Trình Tổng biên (copc)
-                    
-Source Code (.copl)  ──►  Từ Vựng Lexer  ──►  Phân tách Cấu Trúc Parser  ──►  Cây Cấu Trúc Trừu Tượng AST
-                                                 │
-                                     ┌───────────▼───────────┐
-                                     │ Phân Tích Ngữ Nghĩa   │
-                                     │ Semantic Analysis     │
-                                     │  ├─ Tìm phân dải Name │
-                                     │  ├─ Bộ chẩn Type      │
-                                     │  ├─ Rà soát Effect    │
-                                     │  ├─ Nắn Profile       │
-                                     │  ├─ Kiểm tra Contract │
-                                     │  └─ Dò Trace Linker   │
-                                     └───────────┬───────────┘
-                                                 │
-                                     ┌───────────▼───────────┐
-                                     │ Bộ Đúc Khuôn SIR      │
-                                     │  (Semantic IR)        │
-                                     └───────────┬───────────┘
-                                                 │
-                           ┌─────────────────────┼─────────────────────┐
-                           │                     │                     │
-                   ┌───────▼──────┐   ┌──────────▼──────┐   ┌─────────▼──────┐
-                   │  C Lowering  │   │  Rust Lowering  │   │   Go Lowering  │
-                   │  SIR → C-TIR │   │  SIR → Rust-TIR │   │   SIR → Go-TIR │
-                   └───────┬──────┘   └──────────┬──────┘   └─────────┬──────┘
-                           │                     │                     │
-                   ┌───────▼──────┐   ┌──────────▼──────┐   ┌─────────▼──────┐
-                   │  C Codegen   │   │  Rust Codegen   │   │  Go Codegen    │
-                   └───────┬──────┘   └──────────┬──────┘   └─────────┬──────┘
-                           │                     │                     │
-                       Tệp .h + .c        Thư mục .rs          File .go
-                           │                     │                     │
-                    arm-none-eabi-gcc       rustc / cargo         go build
+```mermaid
+flowchart TD
+    A["Source Code (.copl)"] --> B["Từ Vựng Lexer"]
+    B --> C["Phân tách Cấu Trúc Parser"]
+    C --> D["Cây Cấu Trúc Trừu Tượng AST"]
+    D --> E["Phân Tích Ngữ Nghĩa\nSemantic Analysis"]
+
+    E --> E1["Tìm phân dải Name"]
+    E --> E2["Bộ chẩn Type"]
+    E --> E3["Rà soát Effect"]
+    E --> E4["Nắn Profile"]
+    E --> E5["Kiểm tra Contract"]
+    E --> E6["Dò Trace Linker"]
+
+    E1 & E2 & E3 & E4 & E5 & E6 --> F["Bộ Đúc Khuôn SIR\n(Semantic IR)"]
+
+    F --> G1["C Lowering\nSIR → C-TIR"]
+    F --> G2["Rust Lowering\nSIR → Rust-TIR"]
+    F --> G3["Go Lowering\nSIR → Go-TIR"]
+
+    G1 --> H1["C Codegen"]
+    G2 --> H2["Rust Codegen"]
+    G3 --> H3["Go Codegen"]
+
+    H1 --> I1["Tệp .h + .c\n(arm-none-eabi-gcc)"]
+    H2 --> I2["Thư mục .rs\n(rustc / cargo)"]
+    H3 --> I3["File .go\n(go build)"]
 ```
 
 ## 2. Diễn tiến các Giai Đoạn (Phase Details)
@@ -162,7 +154,7 @@ class SIRBuilder:
     Giá Trị Của Nó đại diện cho Nền Móng TRUNG TÂM TUYỆT PHẨM đóng chóp ngự trị (CENTRAL representation) ứng với các khối như:
       - Thiết Bộ Target lowering (cấp mã luân chuyển hạ tầng hardware nhằm xõa tung ra khối thông dịch code generation)
       - Máy In Phân Kênh Kết Tính Artifact engine (Lập khung Trả số liệu ghi biên bản Báo Cáo cho Reports)
-      - Chuyên Vụ Tương Quan Dốc Não Đại Diện GEAS agent (Đọc Lại Toàn Văn Dịch Tư Duy nhằm Phân tích Hấp thụ Ý Chí Lập Trình Về Trọn Bộ cho project)
+      - Chuyên Vụ Phân Tích Dự Án cho AI Agent (Đọc Lại Toàn Văn nhằm Phân tích Hấp thụ Ý Chí Lập Trình Về Trọn Bộ cho project)
     """
     
     def build(self, modules: list[AnalyzedModule]) -> SIRWorkspace:

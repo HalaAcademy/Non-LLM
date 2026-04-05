@@ -9,11 +9,11 @@
 
 ### 1.1 Cấu trúc Phân cấp (Module Hierarchy)
 
-```
-Workspace (root - Mức độ gốc)
-└── Package (Gói directory)
-    └── Module (Tập tin code hoặc khối lệnh block ngầm)
-        └── Định dạng Items (Các khai báo hàm/structs/enums/traits...)
+```mermaid
+flowchart TD
+    W["Workspace (root - Mức độ gốc)"] --> P["Package (Gói directory)"]
+    P --> M["Module (Tập tin code hoặc khối lệnh block ngầm)"]
+    M --> I["Định dạng Items (Các khai báo hàm/structs/enums/traits...)"]
 ```
 
 COPL tuân thủ **một module là đi liền với quy luật mỗi một phân vùng file** như một cơ chế mặc định default, với khối file/module lồng lặp nếu cần.
@@ -261,7 +261,7 @@ fn caller() {
 
 ## 3. Hệ Thông Bảng Diagnostic Codes Báo Trục trặc Của Compiler
 
-Chấn chỉnh Mã/Mã Nhúng Lỗi với định danh chuẩn ổn định để robot AI thông minh GEAS agent dễ tiêu hóa bắt code rà quy mã chuẩn:
+Chấn chỉnh Mã/Mã Nhúng Lỗi với định danh chuẩn ổn định để công cụ tự động dễ tiêu hóa bắt code rà quy mã chuẩn:
 
 ```
 Giới báo lỗi theo Cú pháp Syntax:       E001-E099
