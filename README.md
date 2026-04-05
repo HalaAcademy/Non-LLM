@@ -80,4 +80,4 @@ PYTHONPATH=src pytest tests/ -v
 
 ---
 
-*Hệ thống phát triển bởi Antigravity / Google Deepmind team Architecture.*
+*COPL Compiler — An open-source project by HalaAcademy.*

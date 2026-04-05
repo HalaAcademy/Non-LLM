@@ -9,4 +9,4 @@ Spec reference: docs/copl/09_compiler_architecture.md
 """
 
 __version__ = "0.1.0"
-__author__ = "Cortex Project"
+__author__ = "HalaAcademy"
