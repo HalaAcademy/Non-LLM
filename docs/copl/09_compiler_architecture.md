@@ -12,7 +12,7 @@ flowchart TD
     A["Source Code (.copl)"] --> B["Từ Vựng Lexer"]
     B --> C["Phân tách Cấu Trúc Parser"]
     C --> D["Cây Cấu Trúc Trừu Tượng AST"]
-    D --> E["Phân Tích Ngữ Nghĩa<br>Semantic Analysis"]
+    D --> E["Phân Tích Ngữ Nghĩa<br/>Semantic Analysis"]
 
     E --> E1["Tìm phân dải Name"]
     E --> E2["Bộ chẩn Type"]
@@ -21,19 +21,24 @@ flowchart TD
     E --> E5["Kiểm tra Contract"]
     E --> E6["Dò Trace Linker"]
 
-    E1 & E2 & E3 & E4 & E5 & E6 --> F["Bộ Đúc Khuôn SIR<br>(Semantic IR)"]
+    E1 --> F["Bộ Đúc Khuôn SIR<br/>(Semantic IR)"]
+    E2 --> F
+    E3 --> F
+    E4 --> F
+    E5 --> F
+    E6 --> F
 
-    F --> G1["C Lowering<br>SIR → C-TIR"]
-    F --> G2["Rust Lowering<br>SIR → Rust-TIR"]
-    F --> G3["Go Lowering<br>SIR → Go-TIR"]
+    F --> G1["C Lowering<br/>SIR → C-TIR"]
+    F --> G2["Rust Lowering<br/>SIR → Rust-TIR"]
+    F --> G3["Go Lowering<br/>SIR → Go-TIR"]
 
     G1 --> H1["C Codegen"]
     G2 --> H2["Rust Codegen"]
     G3 --> H3["Go Codegen"]
 
-    H1 --> I1["Tệp .h + .c<br>(arm-none-eabi-gcc)"]
-    H2 --> I2["Thư mục .rs<br>(rustc / cargo)"]
-    H3 --> I3["File .go<br>(go build)"]
+    H1 --> I1["Tệp .h + .c<br/>(arm-none-eabi-gcc)"]
+    H2 --> I2["Thư mục .rs<br/>(rustc / cargo)"]
+    H3 --> I3["File .go<br/>(go build)"]
 ```
 
 ## 2. Diễn tiến các Giai Đoạn (Phase Details)

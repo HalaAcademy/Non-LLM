@@ -89,7 +89,7 @@ flowchart TD
     C -->|"Semantic Analysis"| D["Kho Định Lượng SIR"]
     D -->|"Đúc Khuôn Lowering"| E["TIR (C-TIR, Rust-TIR, Go-TIR, Python-TIR)"]
     E -->|"Sinh Mã Lệnh Codegen"| F["Source Code (C, Rust, Go, Python)"]
-    F -->|"Artifact Engine"| G["AI Bundle, Summary Cards,<br>Trace Matrix, Dependency Graph"]
+    F -->|"Artifact Engine"| G["AI Bundle, Summary Cards,<br/>Trace Matrix, Dependency Graph"]
 ```
 
 ## 5. Hệ Thống Các Khối Rào Chắn Profile System
